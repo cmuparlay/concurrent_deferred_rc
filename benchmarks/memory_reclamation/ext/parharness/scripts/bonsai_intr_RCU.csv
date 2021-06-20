@@ -1,0 +1,2 @@
+affinity,archbits,cores,datetime,environment,interval,language,machine,notes,ops,ops_each,ops_stddev,preheated(MBs),rideable,test,threads
+,64,72,22-05-2017 11:21:46,,10,C++,node2x18a.cs.rochester.edu,,3289392,3289392:,0,3,BonsaiTreeRCU,MapChurn:g50i50:range=65536:prefill=1024 (ASCYLIB's map test),1

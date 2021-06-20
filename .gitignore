@@ -1,0 +1,46 @@
+# Build
+/build
+/results/arc_results
+/results/arc_graphs
+/memory_reclamation/bin/*
+/memory_reclamation/ext/parharness/parharness
+/memory_reclamation/results/*
+/memory_reclamation/graphs/*
+
+# IDE files
+.idea/
+*.swp
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+

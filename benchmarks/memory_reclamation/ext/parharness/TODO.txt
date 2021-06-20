@@ -1,0 +1,9 @@
+TODO's for parharness
+
+Standardize naming convention
+Standardize end lines
+Remove three lines for threads
+
+
+TODO's for make
+Rebuild if dependent .a is changed
