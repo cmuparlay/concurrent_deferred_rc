@@ -2,9 +2,23 @@ include(CheckCXXCompilerFlag)
 
 set(NUMA_COMMAND numactl -i all)
 
+add_library(frc
+  external/frc/frc/detail/FRCManager.cpp
+  external/frc/frc/detail/HelpRouter.cpp
+  external/frc/frc/detail/ThreadData.cpp
+  external/frc/frc/detail/PinSet.cpp
+  external/frc/synchronization/StaticTreeRouter.cpp
+  external/frc/util/DebugPrintf.cpp
+  external/frc/util/Exception.cpp
+  external/frc/util/FastRNG.cpp
+  external/frc/util/thread.cpp
+)
+target_include_directories(frc PUBLIC external/frc)
+target_compile_features(frc PUBLIC cxx_std_20)
+
 function(add_benchmark TARGET)
   add_executable(${TARGET} ${TARGET}.cpp)
-  target_link_libraries(${TARGET} concurrent_deferred_rc)
+  target_link_libraries(${TARGET} concurrent_deferred_rc frc)
   target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wfatal-errors)
   target_compile_features(${TARGET} PRIVATE cxx_std_20)
 

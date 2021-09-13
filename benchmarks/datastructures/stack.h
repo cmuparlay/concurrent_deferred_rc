@@ -34,16 +34,16 @@ concept AtomicSharedPointer = requires(T a) {
 // method, so we can use it preferentially instead of load
 // A snapshot should be dereferenceable to the same type
 // as the shared pointer
-template<typename T> requires AtomicSharedPointer<T>
-concept Snapshotable = requires(T a) {
+template<typename T>
+concept Snapshotable = AtomicSharedPointer<T> && requires(T a) {
   a.get_snapshot();
   std::is_same_v<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
 };
 
 // Detect whether the given atomic storage supports swapping
 // with a given value. This helps to implement faster push
-template<typename T> requires AtomicSharedPointer<T>
-concept Swappable = requires(T a) {
+template<typename T>
+concept Swappable = AtomicSharedPointer<T> && requires(T a) {
   a.swap(std::declval<T>().load());
 };
 
@@ -92,8 +92,6 @@ class alignas(64) atomic_stack {
 
   atomic_stack(atomic_stack&) = delete;
   void operator=(atomic_stack) = delete;
-
-
 
   // Return a snapshot if the atomic_ptr_type supports it,
   // otherwise perform a regular atomic load

@@ -42,6 +42,7 @@ struct StackBenchmark : Benchmark {
       std::vector<std::thread> threads;
       for(size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([this, p, n_threads]() {
+          terrain::frc::FRCToken token;
           utils::rand::init(p+1);
           size_t chunk_size = N/n_threads + 1;
           for(size_t i = p*chunk_size; i < N && i < (p+1)*chunk_size; i++) {
@@ -75,6 +76,8 @@ struct StackBenchmark : Benchmark {
 
       for (size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([&barrier, &done, this, &cnt, p]() {
+          terrain::frc::FRCToken token;
+
           utils::rand::init(p+1);
 
           barrier.wait();
@@ -158,6 +161,7 @@ struct StackBenchmark : Benchmark {
     std::cout << "--------------------------------------------------------------" << std::endl;
   }
 
+  terrain::frc::FRCToken token;
   size_t N;
   std::vector<stack_type> stacks;
 };

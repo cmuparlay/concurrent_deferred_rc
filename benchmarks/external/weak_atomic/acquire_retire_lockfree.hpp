@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <atomic>
 #include <algorithm>    // std::remove_if
+#include <optional>
 
 #include <cdrc/internal/utils.hpp>
 

@@ -17,6 +17,8 @@
 
 #include "external/orcgc/OrcPTP.hpp"
 
+#include "external/frc/frc/frc.h"
+
 #ifdef ARC_JUST_THREADS_AVAILABLE
 #include <experimental/atomic>
 #endif
@@ -100,6 +102,8 @@ SPType<PaddedInt> make_shared_int(int val) {
     return cdrc::rc_ptr<PaddedInt>::make_shared(val);                                     // Our algorithm
   else if constexpr (std::is_same<SPType<PaddedInt>, OrcRcPtr<PaddedInt>>::value)   // ORC-GC's "orc_ptr"
     return orcgc_ptp::make_orc<PaddedInt>(val);
+  else if constexpr (std::is_same<SPType<PaddedInt>, terrain::frc::SharedPointer<PaddedInt>>::value)
+    return terrain::frc::make_shared<PaddedInt>(val);
   else // homebrew shared pointer [depricated]
   {
     std::cerr << "invalid SPType" << std::endl;
@@ -122,8 +126,10 @@ SPType<T> make_shared() {
     return HerlihyRcPtrOpt<T>::make_shared();
   else if constexpr (std::is_same<SPType<T>, cdrc::rc_ptr<T>>::value)
     return cdrc::rc_ptr<T>::make_shared();
-  else if (std::is_same<SPType<PaddedInt>, OrcRcPtr<PaddedInt>>::value)   // ORC-GC's "orc_ptr"
+  else if constexpr (std::is_same<SPType<PaddedInt>, OrcRcPtr<PaddedInt>>::value)   // ORC-GC's "orc_ptr"
     return orcgc_ptp::make_orc<T>();
+  else if constexpr (std::is_same<SPType<PaddedInt>, terrain::frc::SharedPointer<PaddedInt>>::value)
+    return terrain::frc::make_shared<T>();
   else {
     std::cerr << "invalid SPType" << std::endl;
     exit(1);
@@ -143,7 +149,7 @@ concept AllocationTrackable = requires(T&& t) {
 // Benchmarks should implement the bench() function, which
 // runs the benchmark with P threads.
 struct Benchmark {
-  
+
   Benchmark() { }
 
   void start_timer() {
@@ -158,7 +164,7 @@ struct Benchmark {
 
   virtual void bench() = 0;
   virtual ~Benchmark() = default;
-  
+
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
   //int P;    // Number of threads
 };
@@ -198,6 +204,8 @@ void run_benchmark(std::string alg) {
     run_benchmark_helper<BenchmarkType, SnapshottingArcPtr, OurRcPtr>("ARC");
   else if (alg == "orc")
     run_benchmark_helper<BenchmarkType, OrcAtomicRcPtr, OrcRcPtr>("ORC-GC");
+  else if (alg == "frc")
+    run_benchmark_helper<BenchmarkType, terrain::frc::AtomicPointer, terrain::frc::SharedPointer>("FRC");
   else {
     std::cout << "invalid alg name: " << alg << std::endl;
     exit(1);

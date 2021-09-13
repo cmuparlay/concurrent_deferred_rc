@@ -31,6 +31,7 @@ struct RefCountBenchmark : Benchmark {
   RefCountBenchmark(): Benchmark(), 
                        N(bench_params::size),
                        asp_vec(new utils::Padded<AtomicSPType<PaddedInt>>[N]) {
+
     if(N > 100000) {  // initialize in parallel
       size_t n_threads = bench_params::threads;
       assert(n_threads <= utils::num_threads());
@@ -39,6 +40,7 @@ struct RefCountBenchmark : Benchmark {
       //int num_cores = bench_params::P+1;
       for(size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([this, p, n_threads]() {
+          terrain::frc::FRCToken token;
           utils::rand::init(p+1);
           size_t chunk_size = N/n_threads + 1;
           for(size_t i = p*chunk_size; i < N && i < (p+1)*chunk_size; i++)
@@ -58,6 +60,7 @@ struct RefCountBenchmark : Benchmark {
   }
 
   void bench() override {
+
     for(int i = 0; i < bench_params::iterations; i++) {
       size_t n_threads = bench_params::threads;
       
@@ -70,6 +73,8 @@ struct RefCountBenchmark : Benchmark {
 
       for (size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([&barrier, &done, this, &cnt, p]() {
+          terrain::frc::FRCToken token;
+
           utils::rand::init(p+1);
 
           barrier.wait();
@@ -144,6 +149,8 @@ struct RefCountBenchmark : Benchmark {
     std::cout << "--------------------------------------------------------------" << std::endl;
     //std::cout << AtomicSPType<int>::get_name() << std::endl;
   }
+
+  terrain::frc::FRCToken token;
 
   size_t N;
   utils::Padded<AtomicSPType<PaddedInt>> *asp_vec;

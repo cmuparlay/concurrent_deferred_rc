@@ -34,6 +34,12 @@ struct counted_object {
   uint64_t add_refs(uint64_t count) { return ref_cnt.fetch_add(count); }
 
   uint64_t release_refs(uint64_t count) { return ref_cnt.fetch_sub(count); }
+
+  bool try_decrement_if_not_unique() {
+    auto current = ref_cnt.load();
+    assert(current >= 1);
+    return (current > 1 && ref_cnt.compare_exchange_strong(current, current - 1));
+  }
 };
 
 }  // namespace internal

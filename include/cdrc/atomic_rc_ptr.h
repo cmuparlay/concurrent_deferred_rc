@@ -37,7 +37,7 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   ~atomic_rc_ptr() {
     auto ptr = atomic_ptr.load();
     // if (ptr != nullptr) decrement_counter(ptr);
-    if (ptr != nullptr) ar.retire(ptr);
+    if (ptr != nullptr) try_or_defer_decrement(ptr); //ar.retire(ptr);
   }
 
   atomic_rc_ptr(const atomic_rc_ptr &) = delete;
@@ -54,27 +54,27 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
   void store(std::nullptr_t) noexcept {
     auto old_ptr = atomic_ptr.exchange(nullptr, std::memory_order_seq_cst);
-    if (old_ptr != nullptr) ar.retire(old_ptr);
+    if (old_ptr != nullptr) try_or_defer_decrement(old_ptr); //ar.retire(old_ptr);
   }
 
   void store(rc_ptr_t desired) noexcept {
     auto new_ptr = desired.release();
     auto old_ptr = atomic_ptr.exchange(new_ptr, std::memory_order_seq_cst);
-    if (old_ptr != nullptr) ar.retire(old_ptr);
+    if (old_ptr != nullptr) try_or_defer_decrement(old_ptr); //ar.retire(old_ptr);
   }
 
   void store_non_racy(rc_ptr_t desired) noexcept {
     auto new_ptr = desired.release();
     auto old_ptr = atomic_ptr.load();
     atomic_ptr.store(new_ptr, std::memory_order_release);
-    if (old_ptr != nullptr) ar.retire(old_ptr);
+    if (old_ptr != nullptr) try_or_defer_decrement(old_ptr); //ar.retire(old_ptr);
   }
 
   void store(const snapshot_ptr_t &desired) noexcept {
     auto new_ptr = desired.get_counted();
     if (new_ptr != nullptr) increment_counter(new_ptr);
     auto old_ptr = atomic_ptr.exchange(new_ptr, std::memory_order_seq_cst);
-    if (old_ptr != nullptr) ar.retire(old_ptr);
+    if (old_ptr != nullptr) try_or_defer_decrement(old_ptr); //ar.retire(old_ptr);
   }
 
   rc_ptr_t load() const noexcept {
@@ -180,12 +180,19 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   bool compare_and_swap_impl(counted_ptr_t expected_ptr, counted_ptr_t desired_ptr) noexcept {
     if (atomic_ptr.compare_exchange_strong(expected_ptr, desired_ptr, std::memory_order_seq_cst)) {
       if (expected_ptr != nullptr) {
-        ar.retire(expected_ptr);
+        //ar.retire(expected_ptr);
+        try_or_defer_decrement(expected_ptr);
       }
       return true;
     } else {
       return false;
     }
+  }
+
+  static void try_or_defer_decrement(counted_ptr_t ptr) {
+    assert(ptr != nullptr);
+    bool success = ptr->try_decrement_if_not_unique();
+    if (!success) ar.retire(ptr);
   }
 
   static void increment_counter(counted_ptr_t ptr) {
@@ -238,8 +245,8 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   }
 
   static inline internals internal_data;
-  static auto &num_allocated = internal_data.num_allocated;
-  static auto &ar = internal_data.ar;
+  constexpr static auto &num_allocated = internal_data.num_allocated;
+  constexpr static auto &ar = internal_data.ar;
 };
 
 }  // namespace cdrc
