@@ -1,7 +1,8 @@
 
-#ifndef PARLAY_ATOMIC_STACK_H
-#define PARLAY_ATOMIC_STACK_H
+#ifndef CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
+#define CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 
+#include <concepts>
 #include <utility>
 
 #include <cdrc/atomic_rc_ptr.h>
@@ -11,39 +12,37 @@
 
 template<typename T>
 concept SharedPointer = requires(T a) {
-  T(a);                                                         // A shared pointer is copyable
-  T(std::declval<T&&>());                                       // A shared pointer is movable
-  *a;                                                           // A shared pointer can be dereferenced
-  a.get();                                                      // We can access the raw pointer
-  a.operator->();                                               // We can access members of the underlying object
-  requires std::is_pointer_v<decltype(a.get())>;                // The raw pointer is in fact a pointer
+  requires std::copyable<T>;     // A shared pointer is copyable and movable
+  *a;                            // A shared pointer can be dereferenced
+  a.get();                       // We can access the raw pointer
+  a.operator->();                // We can access members of the underlying object
+  requires std::is_pointer_v<decltype(a.get())>;
   requires std::is_pointer_v<decltype(a.operator->())>;
 };
 
 // An atomic shared pointer must at minimum support load, store, and compare exchange weak
 template<typename T>
 concept AtomicSharedPointer = requires(T a) {
-  a.load();                                                         // We can load from an atomic shared pointer
+  a.load() -> SharedPointer;                                        // We can load from an atomic shared pointer
   a.store(std::declval<decltype(a.load())>());                      // We can store to an atomic shared pointer
   a.compare_exchange_weak(std::declval<decltype(a.load())&>(),      // We can CAS on an atomic shared pointer
                           std::declval<decltype(a.load())>());
-   SharedPointer<decltype(a.load())>;                               // The loaded object is a shared pointer
 };
 
 // Detect atomic storage types that support a get_snapshot
 // method, so we can use it preferentially instead of load
 // A snapshot should be dereferenceable to the same type
 // as the shared pointer
-template<typename T> requires AtomicSharedPointer<T>
-concept Snapshotable = requires(T a) {
+template<typename T>
+concept Snapshotable = AtomicSharedPointer<T> && requires(T a) {
   a.get_snapshot();
-  std::is_same_v<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
+  std::same_as<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
 };
 
 // Detect whether the given atomic storage supports swapping
 // with a given value. This helps to implement faster push
-template<typename T> requires AtomicSharedPointer<T>
-concept Swappable = requires(T a) {
+template<typename T>
+concept Swappable = AtomicSharedPointer<T> && requires(T a) {
   a.swap(std::declval<T>().load());
 };
 
@@ -85,15 +84,10 @@ class alignas(64) atomic_stack {
     T t;
     sp_t next;
     Node() = default;
-    Node(T t_) : t(std::move(t_)) { }
+    explicit Node(T t_) : t(std::move(t_)) { }
   };
 
   atomic_sp_t head;
-
-  atomic_stack(atomic_stack&) = delete;
-  void operator=(atomic_stack) = delete;
-
-
 
   // Return a snapshot if the atomic_ptr_type supports it,
   // otherwise perform a regular atomic load
@@ -104,6 +98,9 @@ class alignas(64) atomic_stack {
 
  public:
   atomic_stack() = default;
+
+  atomic_stack(atomic_stack&) = delete;
+  void operator=(atomic_stack) = delete;
 
   // Avoid exploding the call stack when destructing
   ~atomic_stack() {
@@ -194,16 +191,18 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
     T t;
     atomic_sp_t next;
     Node() = default;
-    Node(T t_) : t(std::move(t_)) { }
+    explicit Node(T t_) : t(std::move(t_)) { }
   };
 
   atomic_sp_t head;
 
-  atomic_stack(atomic_stack&) = delete;
-  void operator=(atomic_stack) = delete;
+
 
  public:
   atomic_stack() = default;
+
+  atomic_stack(atomic_stack&) = delete;
+  void operator=(atomic_stack) = delete;
 
   // Avoid exploding the call stack when destructing
   ~atomic_stack() {
@@ -281,4 +280,4 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
 };
 
 
-#endif  // PARLAY_STACK_H
+#endif  // CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H

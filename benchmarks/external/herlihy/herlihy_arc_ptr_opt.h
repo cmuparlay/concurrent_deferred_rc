@@ -124,7 +124,7 @@ private:
   }
 
   static inline internals internal_data;
-  static auto& ar = internal_data.ar;
+  static inline auto& ar = internal_data.ar;
 };
 
 #endif

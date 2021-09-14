@@ -62,6 +62,7 @@ limitations under the License.
 union word_pair_t {
 	std::atomic<uint64_t> pair[2];
 	std::atomic<__uint128_t> full;
+    word_pair_t() {}
 };
 
 union value_pair_t {

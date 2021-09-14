@@ -3,9 +3,6 @@
 
 #include<cdrc/marked_arc_ptr.h>
 
-const int INT_MIN = std::numeric_limits<int>::min();
-const int INT_MAX = std::numeric_limits<int>::max();
-
 namespace cdrc {
 
 // An implementation of a concurrent sorted linked list using marked pointers

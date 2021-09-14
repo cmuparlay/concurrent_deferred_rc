@@ -12,6 +12,8 @@ This library is part of the following research project. If you use it for scient
 
 To work with the tests and benchmarks, you will need a recent version of CMake. To use the library on its own, you can
 simply include the `include` directory. The library is header only and has no other dependencies. Our types are provided inside the namespace `cdrc`.
+You'll need a compiler that supports at least C++17. Some of our tests and benchmarks require C++20, but the library
+itself should work with just C++17.
 
 ### Using the library
 

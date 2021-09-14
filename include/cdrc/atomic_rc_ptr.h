@@ -238,8 +238,8 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   }
 
   static inline internals internal_data;
-  static auto &num_allocated = internal_data.num_allocated;
-  static auto &ar = internal_data.ar;
+  static inline auto &num_allocated = internal_data.num_allocated;
+  static inline auto &ar = internal_data.ar;
 };
 
 }  // namespace cdrc

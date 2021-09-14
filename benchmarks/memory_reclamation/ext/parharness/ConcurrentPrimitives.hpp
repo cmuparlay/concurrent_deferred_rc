@@ -50,9 +50,9 @@ private:
         ?  CACHE_LINE_SIZE - (sizeof(T)%CACHE_LINE_SIZE)
         : CACHE_LINE_SIZE ];
 public:
-  padded<T> ():ui() {};
+  padded():ui() {};
   // conversion from T (constructor):
-  padded<T> (const T& val):ui(val) {};
+  padded(const T& val):ui(val) {};
   // conversion from A (assignment):
   padded<T>& operator= (const T& val) {ui = val; return *this;}
   // conversion to A (type-cast operator)
@@ -70,9 +70,9 @@ private:
         ?  CACHE_LINE_SIZE - (sizeof(T)%CACHE_LINE_SIZE)
         : CACHE_LINE_SIZE ];
 public:
-  paddedAtomic<T> ():ui() {}
+  paddedAtomic():ui() {}
   // conversion from T (constructor):
-  paddedAtomic<T> (const T& val):ui(val) {}
+  paddedAtomic(const T& val):ui(val) {}
   // conversion from A (assignment):
   paddedAtomic<T>& operator= (const T& val) {ui.store(val); return *this;}
   // conversion to A (type-cast operator)
@@ -91,9 +91,9 @@ private:
         ? CACHE_LINE_SIZE - sizeof(T)
         : 1 ];
 public:
-  volatile_padded<T> ():ui() {}
+  volatile_padded():ui() {}
   // conversion from T (constructor):
-  volatile_padded<T> (const T& val):ui(val) {}
+  volatile_padded(const T& val):ui(val) {}
   // conversion from T (assignment):
   volatile_padded<T>& operator= (const T& val) {ui = val; return *this;}
   // conversion to T (type-cast operator)
@@ -140,7 +140,7 @@ public:
 	T* operator ->(){return this->ptr();}
 
 	// conversion from T (constructor):
-	cptr_local<T> (const T*& val) {init(val,0);}
+	cptr_local(const T*& val) {init(val,0);}
 	// conversion to T (type-cast operator)
 	operator T*() {return this->ptr();}
 
@@ -152,20 +152,20 @@ public:
 	T* ptr(){return (T*)((ui&0xffffffff00000000) >>32);}
 	uint32_t sn(){return (ui&0x00000000ffffffff);}
 
-	cptr_local<T>(){
+	cptr_local(){
 		init(NULL,0);
 	}
-	cptr_local<T>(const uint64_t initer){
+	cptr_local(const uint64_t initer){
 		init(initer);
 	}
-	cptr_local<T>(const T* ptr, const uint32_t sn){
+	cptr_local(const T* ptr, const uint32_t sn){
 		init(ptr,sn);
 	}
-	cptr_local<T>(const cptr_local<T> &cp){
+	cptr_local(const cptr_local<T> &cp){
 		init(cp.all());
 	}
 
-	cptr_local<T> (const cptr<T>& cp) {init(cp.all());}
+	cptr_local(const cptr<T>& cp) {init(cp.all());}
 	// conversion from A (assignment):
 	cptr_local<T>& operator= (const cptr<T>& cp) {init(cp.all()); return *this;}
 };
@@ -193,7 +193,7 @@ public:
 	T* operator ->(){return this->ptr();}
 
   // conversion from T (constructor):
-  cptr<T> (const T*& val) {init(val,0);}
+  cptr(const T*& val) {init(val,0);}
   // conversion to T (type-cast operator)
   operator T*() {return this->ptr();}
 
@@ -248,19 +248,19 @@ public:
 		};
 	}
 
-	cptr<T>(){
+	cptr(){
 		init(NULL,0);
 	}
-	cptr<T>(const cptr<T>& cp){
+	cptr(const cptr<T>& cp){
 		init(cp.all());
 	}
-	cptr<T>(const cptr_local<T>& cp){
+	cptr(const cptr_local<T>& cp){
 		init(cp.all());
 	}
-	cptr<T>(const uint64_t initer){
+	cptr(const uint64_t initer){
 		init(initer);
 	}
-	cptr<T>(const T* ptr, const uint32_t sn){
+	cptr(const T* ptr, const uint32_t sn){
 		init(ptr,sn);
 	}
 
