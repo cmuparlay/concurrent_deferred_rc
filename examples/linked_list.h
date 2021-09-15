@@ -23,8 +23,8 @@ class atomic_linked_list {
   };
 
 public:
-  atomic_linked_list() : tail(sp_t::make_shared(INT_MAX)),
-                         head(sp_t::make_shared(INT_MIN, tail)) 
+  atomic_linked_list() : tail(sp_t::make_shared(std::numeric_limits<int>::max())),
+                         head(sp_t::make_shared(std::numeric_limits<int>::min(), tail)) 
                          {}
 
   // Looks for key in list
