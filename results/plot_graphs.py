@@ -25,7 +25,7 @@ class bcolors:
 benchmark_throughput_pattern = re.compile('Total Throughput = (\S+) Mop/s')
 memory_usage_pattern = re.compile('Average number of allocated objects: (\S+) ')
 
-NUMA_COMMAND = ''#'numactl -i all '
+NUMA_COMMAND = 'numactl -i all '
 JEMALLOC_COMMAND = 'LD_PRELOAD=/usr/local/lib/libjemalloc.so '
 NUM_THREADS_COMMAND = 'NUM_THREADS={} '
 
