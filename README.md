@@ -5,7 +5,7 @@ A library for high-performance reference-counted pointers for automatic memory m
 This library is part of the following research project. If you use it for scientific purposes, please cite it as follows:
 
 > **Concurrent Deferred Reference Counting with Constant-Time Overhead**<br />
-> Daniel Anderson, Guy E. Blelloch, Yunhao Wei<br />
+> Daniel Anderson, Guy E. Blelloch, Yuanhao Wei<br />
 > The 42nd ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI 2021), 2021
 
 ## Getting started
