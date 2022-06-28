@@ -1,6 +1,6 @@
 
-#ifndef PARLAY_ATOMIC_STACK_H
-#define PARLAY_ATOMIC_STACK_H
+#ifndef CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
+#define CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 
 #include <utility>
 
@@ -280,4 +280,4 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
 };
 
 
-#endif  // PARLAY_STACK_H
+#endif  // CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
