@@ -1,0 +1,57 @@
+name: Build
+on: [push, pull_request]
+env:
+  NUM_THREADS: 16
+
+jobs:
+  build:
+    name: ${{ matrix.config.os }} ${{ matrix.config.cxx }} ${{ matrix.config.note }} (${{ matrix.build_type }})
+    runs-on: ${{ matrix.config.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        build_type: ["Debug", "RelWithDebInfo", "Release"]
+        config:
+          - {
+            os: ubuntu-latest,
+            cc: "gcc-9", cxx: "g++-9"
+          }
+          - {
+            os: ubuntu-latest,
+            cc: "gcc-11", cxx: "g++-11"
+          }
+          - {
+            os: ubuntu-latest,
+            cc: "clang-13", cxx: "clang++-13"
+          }
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up toolchain repositories
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-13 main"
+
+      - name: Install Compiler
+        if: startsWith(matrix.config.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get -qq install ${{matrix.config.cc}} ${{matrix.config.cxx}}
+
+      - name: Configure
+        run: |
+          mkdir build && cd build
+          CC=${{matrix.config.cc}} CXX=${{matrix.config.cxx}} cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
+
+      - name: Build
+        run: |
+          cd build
+          make
+
+      - name: Test
+        run: |
+          cd build
+          ctest --no-tests=error --output-on-failure
