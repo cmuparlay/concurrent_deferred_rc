@@ -41,9 +41,9 @@ jobs:
           sudo apt-get update
           sudo apt-get -qq install ${{matrix.config.cc}} ${{matrix.config.cxx}}
 
-      - name: Install Boost
+      - name: Install Dependencies
         run: |
-          sudo apt-get -qq install libboost-program-options-dev
+          sudo apt-get -qq install libboost-program-options-dev libhwloc-dev
 
       - name: Configure
         run: |
