@@ -8,6 +8,13 @@
 #include <type_traits>
 
 #include "atomic_rc_ptr.h"
+#include "atomic_weak_ptr.h"
+
+#include "rc_ptr.h"
+#include "weak_ptr.h"
+
+#include "snapshot_ptr.h"
+#include "weak_snapshot_ptr.h"
 
 namespace cdrc {
 
@@ -24,11 +31,11 @@ class marked_ptr {
 
   /* implicit */ marked_ptr(T *new_ptr) : ptr(reinterpret_cast<uintptr_t>(new_ptr)) {}
 
-  operator T *() const { return get_ptr(); }
+  operator T* () const { return get_ptr(); }
 
   typename std::add_lvalue_reference_t<T> operator*() const { return *(get_ptr()); }
 
-  T *operator->() { return get_ptr(); }
+  T* operator->() { return get_ptr(); }
 
   const T *operator->() const { return get_ptr(); }
 
@@ -40,9 +47,9 @@ class marked_ptr {
 
   bool operator!=(const T *other) const { return get_ptr() != other; }
 
-  T *get_ptr() const { return reinterpret_cast<T *>(ptr & ~(ONE_BIT | TWO_BIT)); }
+  T* get_ptr() const { return reinterpret_cast<T *>(ptr & ~(ONE_BIT | TWO_BIT)); }
 
-  void set_ptr(T *new_ptr) { ptr = reinterpret_cast<uintptr_t>(new_ptr) | get_mark(); }
+  void set_ptr(T* new_ptr) { ptr = reinterpret_cast<uintptr_t>(new_ptr) | get_mark(); }
 
   uintptr_t get_mark() const { return ptr & (ONE_BIT | TWO_BIT); }
 
@@ -75,6 +82,8 @@ class marked_ptr_policy;
 
 }  // namespace internal
 
+// Alias templates for marked pointers with the default memory manager
+
 template<typename T, typename memory_manager = internal::default_memory_manager<T>>
 using marked_arc_ptr = atomic_rc_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
 
@@ -83,6 +92,100 @@ using marked_rc_ptr = rc_ptr<T, memory_manager, internal::marked_ptr_policy<memo
 
 template<typename T, typename memory_manager = internal::default_memory_manager<T>>
 using marked_snapshot_ptr = snapshot_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
+
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_aw_ptr = atomic_weak_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
+
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_weak_ptr = weak_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
+
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_ws_ptr = weak_snapshot_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
+
+
+// Alias templates for marked pointers with hazard pointers
+
+template<typename T>
+using marked_arc_ptr_hp = marked_arc_ptr<T, internal::acquire_retire<T>>;
+
+template<typename T>
+using marked_rc_ptr_hp = marked_rc_ptr<T, internal::acquire_retire<T>>;
+
+template<typename T>
+using marked_snapshot_ptr_hp = marked_snapshot_ptr<T, internal::acquire_retire<T>>;
+
+template<typename T>
+using marked_aw_ptr_hp = marked_aw_ptr<T, internal::acquire_retire<T>>;
+
+template<typename T>
+using marked_weak_ptr_hp = marked_weak_ptr<T, internal::acquire_retire<T>>;
+
+template<typename T>
+using marked_ws_ptr_hp = marked_ws_ptr<T, internal::acquire_retire<T>>;
+
+
+// Alias templates for marked pointers with EBR
+
+template<typename T>
+using marked_arc_ptr_ebr = marked_arc_ptr<T, internal::acquire_retire_ebr<T>>;
+
+template<typename T>
+using marked_rc_ptr_ebr = marked_rc_ptr<T, internal::acquire_retire_ebr<T>>;
+
+template<typename T>
+using marked_snapshot_ptr_ebr = marked_snapshot_ptr<T, internal::acquire_retire_ebr<T>>;
+
+template<typename T>
+using marked_aw_ptr_ebr = marked_aw_ptr<T, internal::acquire_retire_ebr<T>>;
+
+template<typename T>
+using marked_weak_ptr_ebr = marked_weak_ptr<T, internal::acquire_retire_ebr<T>>;
+
+template<typename T>
+using marked_ws_ptr_ebr = marked_ws_ptr<T, internal::acquire_retire_ebr<T>>;
+
+
+// Alias templates for marked pointers with IBR
+
+template<typename T>
+using marked_arc_ptr_ibr = marked_arc_ptr<T, internal::acquire_retire_ibr<T>>;
+
+template<typename T>
+using marked_rc_ptr_ibr = marked_rc_ptr<T, internal::acquire_retire_ibr<T>>;
+
+template<typename T>
+using marked_snapshot_ptr_ibr = marked_snapshot_ptr<T, internal::acquire_retire_ibr<T>>;
+
+template<typename T>
+using marked_aw_ptr_ibr = marked_aw_ptr<T, internal::acquire_retire_ibr<T>>;
+
+template<typename T>
+using marked_weak_ptr_ibr = marked_weak_ptr<T, internal::acquire_retire_ibr<T>>;
+
+template<typename T>
+using marked_ws_ptr_ibr = marked_ws_ptr<T, internal::acquire_retire_ibr<T>>;
+
+
+// Alias templates for marked pointers with Hyaline
+
+template<typename T>
+using marked_arc_ptr_hyaline = marked_arc_ptr<T, internal::acquire_retire_hyaline<T>>;
+
+template<typename T>
+using marked_rc_ptr_hyaline = marked_rc_ptr<T, internal::acquire_retire_hyaline<T>>;
+
+template<typename T>
+using marked_snapshot_ptr_hyaline = marked_snapshot_ptr<T, internal::acquire_retire_hyaline<T>>;
+
+template<typename T>
+using marked_aw_ptr_hyaline = marked_aw_ptr<T, internal::acquire_retire_hyaline<T>>;
+
+template<typename T>
+using marked_weak_ptr_hyaline = marked_weak_ptr<T, internal::acquire_retire_hyaline<T>>;
+
+template<typename T>
+using marked_ws_ptr_hyaline = marked_ws_ptr<T, internal::acquire_retire_hyaline<T>>;
+
 
 namespace internal {
 

@@ -1,10 +1,9 @@
 
 #include <climits>
 
-#include<limits>
+#include <limits>
 
-#include<cdrc/marked_arc_ptr.h>
-// #include<cdrc/internal/acquire_retire_ibr.h>
+#include <cdrc/marked_arc_ptr.h>
 
 
 namespace cdrc {
@@ -15,9 +14,6 @@ namespace cdrc {
 class atomic_linked_list {
 
   struct Node;
-  // using atomic_sp_t = marked_arc_ptr<Node, internal::acquire_retire_ibr_wrapper>;
-  // using sp_t = marked_rc_ptr<Node, internal::acquire_retire_ibr_wrapper>;
-  // using snapshot_ptr_t = marked_snapshot_ptr<Node, internal::acquire_retire_ibr_wrapper>;
 
   using atomic_sp_t = marked_arc_ptr<Node>;
   using sp_t = marked_rc_ptr<Node>;
@@ -31,8 +27,8 @@ class atomic_linked_list {
   };
 
 public:
-  atomic_linked_list() : tail(sp_t::make_shared(INT_MAX)),
-                         head(sp_t::make_shared(INT_MIN, tail)) 
+  atomic_linked_list() : tail(sp_t::make_shared(std::numeric_limits<int>::max())),
+                         head(sp_t::make_shared(std::numeric_limits<int>::lowest(), tail))
                          {}
 
   // Looks for key in list
@@ -45,7 +41,7 @@ public:
   bool insert(int key) {
     auto [left, right] = search(key);
     if(right->key == key) return false; // key is in list
-    sp_t new_node = sp_t::make_shared(key, right); // TODO: implicity convert right to sp_t
+    sp_t new_node = sp_t::make_shared(key, right);
     if(left->next.compare_and_swap(right, new_node)) 
       return true;
     else return insert(key); // try again

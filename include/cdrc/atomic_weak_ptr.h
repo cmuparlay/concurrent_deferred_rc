@@ -57,7 +57,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
   atomic_weak_ptr &operator=(atomic_weak_ptr &&) = delete;
 
-  bool is_lock_free() const noexcept { return true; }
+  [[nodiscard]] bool is_lock_free() const noexcept { return true; }
 
   static constexpr bool is_always_lock_free = true;
 
@@ -95,6 +95,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
   weak_ptr_t load() const noexcept {
     auto acquired_ptr = mm.acquire(&atomic_ptr);
+    auto guard = scope_guard([&](void*) { acquired_ptr.clear_protection(mm); });
     weak_ptr_t result(acquired_ptr.get(), weak_ptr_t::AddRef::yes);
     return result;
   }
@@ -138,7 +139,9 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
     // We need to make a reservation if the desired snapshot pointer no longer has
     // an announcement slot. Otherwise, desired is protected, assuming that another
     // thread can not clear the announcement slot (this might change one day!)
-    [[maybe_unused]] auto reservation = !desired.is_protected() ? mm.reserve(desired.get_counted()) : mm.template reserve_nothing<counted_ptr_t>();
+    [[maybe_unused]] auto reservation = !desired.is_protected() ? mm.reserve(desired.get_counted()) :
+                                                                  mm.template reserve_nothing<counted_ptr_t>();
+    auto guard = scope_guard([&](void*) { reservation.clear_protection(mm); });
 
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       auto desired_ptr = desired.get_counted();
@@ -173,7 +176,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
     return *this;
   }
 
-  operator weak_ptr_t() const noexcept { return load(); }
+  /* implicit */ operator weak_ptr_t() const noexcept { return load(); }
 
   static size_t currently_allocated() {
     return mm.currently_allocated();
