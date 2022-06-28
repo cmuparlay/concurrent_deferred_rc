@@ -9,7 +9,7 @@
 #include <algorithm>    // std::remove_if
 #include <optional>
 
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 /* acquire-retire should only be used on plain old data types
    that fit into 8 btyes (while there is 16 btye CAS, there's no 16 byte read).

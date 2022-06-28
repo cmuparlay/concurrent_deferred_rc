@@ -3,6 +3,7 @@
 #define ARC_MARKED_ARC_PTR_H
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 
 #include <type_traits>

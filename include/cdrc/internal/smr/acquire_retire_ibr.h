@@ -1,19 +1,20 @@
-#ifndef PARLAY_ATOMIC_ACQUIRE_RETIRE_IBR_GUARD_H
-#define PARLAY_ATOMIC_ACQUIRE_RETIRE_IBR_GUARD_H
+#ifndef CDRC_SMR_ACQUIRE_RETIRE_IBR_H
+#define CDRC_SMR_ACQUIRE_RETIRE_IBR_H
 
 #include <cstddef>
+#include <cstdint>
 
 #include <algorithm>
-#include <array>
 #include <atomic>
-#include <unordered_set>
+#include <memory>
+#include <type_traits>
+#include <utility>
 #include <vector>
-#include <limits>
 
 #include "../counted_object.h"
 #include "../epoch_tracker.h"
 #include "../memory_manager_base.h"
-#include "../utils.hpp"
+#include "../utils.h"
 
 namespace cdrc {
 
@@ -255,4 +256,4 @@ struct acquire_retire_ibr : public memory_manager_base<T, acquire_retire_ibr<T, 
 
 }  // namespace cdrc
 
-#endif  // PARLAY_ATOMIC_ACQUIRE_RETIRE_IBR_GUARD_H
+#endif  // CDRC_SMR_ACQUIRE_RETIRE_IBR_H

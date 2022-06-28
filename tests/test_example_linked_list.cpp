@@ -1,19 +1,22 @@
 
-#include <assert.h>
+#include <cassert>
+
+#include <atomic>
 #include <vector>
 #include <algorithm>
 #include <thread>
 
+#include <cdrc/internal/utils.h>
+
 #include "../examples/linked_list.h"
 #include "../benchmarks/barrier.hpp"
 
-using namespace cdrc;
 using namespace std;
 
-int NUM_THREADS = utils::num_threads()-1;
+const size_t NUM_THREADS = utils::num_threads() - 1;
 
 void test_simple() {
-  atomic_linked_list set;
+  cdrc::atomic_linked_list set;
   assert(!set.find(2));
   assert(!set.remove(0));
   assert(!set.find(2));
@@ -37,7 +40,7 @@ void test_simple() {
 }
 
 void stress_test(int num_iter) {
-  atomic_linked_list set;
+  cdrc::atomic_linked_list set;
   
   vector<int> keys;
   for(int i = 0; i < num_iter; i++)
@@ -47,7 +50,7 @@ void stress_test(int num_iter) {
   Barrier barrier(NUM_THREADS);
 
   vector<thread> threads;
-  for(int p = 0; p < NUM_THREADS; p++) {
+  for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([p, &set, &keys, &barrier, &num_iter] () {
       for(int i = p; i < num_iter; i+=NUM_THREADS)
         assert(set.insert(keys[i]));
@@ -60,7 +63,7 @@ void stress_test(int num_iter) {
 }
 
 void test_concurrent_delete() {
-  atomic_linked_list set;
+  cdrc::atomic_linked_list set;
   int num_iter = 1000;
   
   long long expected_sum = 0;
@@ -74,7 +77,7 @@ void test_concurrent_delete() {
   atomic<int> remove_next = 0;
 
   vector<thread> threads;
-  for(int p = 0; p < NUM_THREADS; p++) {
+  for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([&set, &barrier, &remove_next, &actual_sum, &num_iter] () {
       barrier.wait();
       long long local_sum = 0;

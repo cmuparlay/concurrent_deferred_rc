@@ -32,7 +32,7 @@
 #include <atomic>
 #include <stdexcept>
 
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 #include "HazardPointersDL.hpp" // We need to use a special version of hazard pointers
 

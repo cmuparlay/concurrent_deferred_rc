@@ -1,10 +1,12 @@
 
 #include <cassert>
+#include <cstdio>
 
 #include <atomic>
 #include <iostream>
 #include <memory>
 #include <thread>
+#include <vector>
 
 #include "../benchmarks/datastructures/queue.h"
 
@@ -119,8 +121,6 @@ void test_par2() {
   std::vector<std::thread> threads;
   threads.reserve(N);
 
-  std::atomic<bool> done = false;
-
   for (int t = 0; t < N; t++) {
     threads.emplace_back([&q, &sums, t]() {
       long long int local_sum = 0;
@@ -150,5 +150,3 @@ int main () {
   std::cout << "Running tests using up to " << utils::num_threads() << " threads." << std::endl;
   run_all_tests();
 }
-
-

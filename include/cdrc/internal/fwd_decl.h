@@ -2,6 +2,8 @@
 #ifndef ARC_FWD_DECL_H
 #define ARC_FWD_DECL_H
 
+#include <type_traits>
+
 #include "smr/acquire_retire.h"
 #include "smr/acquire_retire_ebr.h"
 #include "smr/acquire_retire_ibr.h"

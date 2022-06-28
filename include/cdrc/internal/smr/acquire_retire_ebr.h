@@ -1,20 +1,21 @@
 
-#ifndef CONCURRENT_DEFERRED_RC_ACQUIRE_RETIRE_EBR_H
-#define CONCURRENT_DEFERRED_RC_ACQUIRE_RETIRE_EBR_H
+#ifndef CDRC_SMR_ACQUIRE_RETIRE_EBR_H
+#define CDRC_SMR_ACQUIRE_RETIRE_EBR_H
 
 #include <cstddef>
+#include <cstdint>
 
 #include <algorithm>
-#include <array>
 #include <atomic>
-#include <unordered_set>
+#include <memory>
+#include <type_traits>
+#include <utility>
 #include <vector>
-#include <limits>
 
 #include "../counted_object.h"
 #include "../epoch_tracker.h"
 #include "../memory_manager_base.h"
-#include "../utils.hpp"
+#include "../utils.h"
 
 namespace cdrc {
 
@@ -200,4 +201,4 @@ private:
 
 }  // namespace cdrc
 
-#endif //CONCURRENT_DEFERRED_RC_ACQUIRE_RETIRE_EBR_H
+#endif // CDRC_SMR_ACQUIRE_RETIRE_EBR_H

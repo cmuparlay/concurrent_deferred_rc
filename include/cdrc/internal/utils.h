@@ -1,19 +1,16 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <cctype>
-#include <cmath>
-#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 
 #include <atomic>
 #include <iostream>
 #include <memory>
-#include <map>
-#include <sstream>
+#include <string>
 #include <thread>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 const int PADDING = 64;
@@ -203,7 +200,7 @@ struct ThreadID {
     int tid;
 
     ThreadID() {
-      for(uint i = 0; i < num_threads(); i++) {
+      for(size_t i = 0; i < num_threads(); i++) {
         bool expected = false;
         if(!in_use[i] && in_use[i].compare_exchange_strong(expected, true)) {
           tid = i;
@@ -280,4 +277,5 @@ struct ThreadID {
     }
   }
 }
-#endif /* UTILS_H */
+
+#endif  // UTILS_H

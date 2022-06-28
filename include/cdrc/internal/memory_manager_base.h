@@ -2,11 +2,17 @@
 #ifndef CONCURRENT_DEFERRED_RC_MEMORY_MANAGER_BASE_H
 #define CONCURRENT_DEFERRED_RC_MEMORY_MANAGER_BASE_H
 
+#include <cassert>
+#include <cstddef>
+
 #include <atomic>
+#include <functional>
+#include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "counted_object.h"
-#include "utils.hpp"
+#include "utils.h"
 
 namespace cdrc {
 namespace internal {

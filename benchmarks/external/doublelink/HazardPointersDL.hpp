@@ -32,7 +32,7 @@
 #include <atomic>
 #include <iostream>
 
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 template<typename T>
 class HazardPointersDL {

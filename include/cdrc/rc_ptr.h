@@ -1,15 +1,17 @@
 
-#ifndef PARLAY_RC_PTR_H_
-#define PARLAY_RC_PTR_H_
+#ifndef CDRC_RC_PTR_H_
+#define CDRC_RC_PTR_H_
 
-#include <atomic>
+#include <cstddef>
+
 #include <type_traits>
+#include <utility>
 
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
-#include "internal/utils.hpp"
 
 #include "atomic_rc_ptr.h"
+#include "weak_ptr.h"
 
 namespace cdrc {
 
@@ -157,4 +159,4 @@ static rc_ptr<T, memory_manager, pointer_policy> make_rc(Args &&... args) {
 
 }  // namespace cdrc
 
-#endif  // PARLAY_RC_PTR_H_
+#endif  // CDRC_RC_PTR_H_

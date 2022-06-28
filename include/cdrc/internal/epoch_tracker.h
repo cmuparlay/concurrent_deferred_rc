@@ -2,11 +2,20 @@
 #ifndef CONCURRENT_DEFERRED_RC_EPOCH_TRACKER_H
 #define CONCURRENT_DEFERRED_RC_EPOCH_TRACKER_H
 
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+
 #include <atomic>
+#include <algorithm>
+#include <functional>
+#include <memory>
 #include <limits>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
-#include "utils.hpp"
+#include "utils.h"
 
 namespace cdrc {
 namespace internal {

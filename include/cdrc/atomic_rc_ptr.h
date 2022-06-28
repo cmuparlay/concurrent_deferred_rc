@@ -2,10 +2,13 @@
 #ifndef CDRC_ATOMIC_RC_PTR_H
 #define CDRC_ATOMIC_RC_PTR_H
 
+#include <cstddef>
+
 #include <atomic>
 
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
+#include "internal/utils.h"
 
 #include "rc_ptr.h"
 #include "snapshot_ptr.h"
@@ -153,8 +156,7 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   // Atomically compares the underlying rc_ptr with expected, and if they are equal,
   // replaces the current rc_ptr with desired by move assignment, hence leaving its
   // reference count unchanged. Otherwise returns false and leaves desired unmodified.
-  bool compare_and_swap(const auto &expected,
-                        auto &&desired) noexcept requires std::is_rvalue_reference_v<decltype(desired)> {
+  auto compare_and_swap(const auto &expected, auto &&desired) noexcept -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       desired.release();
       return true;

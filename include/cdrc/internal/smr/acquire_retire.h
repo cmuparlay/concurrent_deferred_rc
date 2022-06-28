@@ -1,6 +1,6 @@
 
-#ifndef PARLAY_ATOMIC_ACQUIRE_RETIRE_H
-#define PARLAY_ATOMIC_ACQUIRE_RETIRE_H
+#ifndef CDRC_SMR_ACQUIRE_RETIRE_H
+#define CDRC_SMR_ACQUIRE_RETIRE_H
 
 #include <cassert>
 #include <cstddef>
@@ -8,12 +8,15 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <unordered_set>
+#include <memory>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "../counted_object.h"
 #include "../memory_manager_base.h"
-#include "../utils.hpp"
+#include "../utils.h"
 
 namespace cdrc {
 
@@ -381,4 +384,4 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
 
 }  // namespace cdrc
 
-#endif  // PARLAY_ATOMIC_ACQUIRE_RETIRE_H
+#endif  // CDRC_SMR_ACQUIRE_RETIRE_H

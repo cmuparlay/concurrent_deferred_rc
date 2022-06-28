@@ -3,6 +3,7 @@
 #define CDRC_BENCHMARKS_DATASTRUCTURES_QUEUE_H
 
 #include <optional>
+#include <utility>
 
 #include <cdrc/atomic_rc_ptr.h>
 #include <cdrc/rc_ptr.h>

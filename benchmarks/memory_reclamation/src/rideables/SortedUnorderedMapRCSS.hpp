@@ -33,7 +33,7 @@ limitations under the License.
 #include <iostream>
 
 #include <cdrc/marked_arc_ptr.h>
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 #ifdef NGC
 #define COLLECT false

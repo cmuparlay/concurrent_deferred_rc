@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <iostream>
-#include <fstream>
 #include <thread>
 
 #include <cdrc/atomic_rc_ptr.h>

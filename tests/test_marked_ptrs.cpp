@@ -1,4 +1,6 @@
 
+#include <cassert>
+
 #include <cdrc/marked_arc_ptr.h>
 
 int main() {

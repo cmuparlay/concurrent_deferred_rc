@@ -2,13 +2,18 @@
 #ifndef CDRC_ATOMIC_WEAK_PTR_H
 #define CDRC_ATOMIC_WEAK_PTR_H
 
+#include <cstddef>
+
 #include <atomic>
+#include <type_traits>
 
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
+#include "internal/utils.h"
 
-#include "rc_ptr.h"
+#include "atomic_rc_ptr.h"
 #include "snapshot_ptr.h"
+#include "weak_ptr.h"
 #include "weak_snapshot_ptr.h"
 
 namespace cdrc {
@@ -131,8 +136,8 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
       return true;
   }
 
-  // Atomically compares the underlying rc_ptr with expected, and if they refer to
-  // the same managed object, replaces the current rc_ptr with a copy of desired
+  // Atomically compares the underlying weak_ptr with expected, and if they refer to
+  // the same managed object, replaces the current weak_ptr with a copy of desired
   // (incrementing its reference count) and returns true. Otherwise returns false.
   bool compare_and_swap(const auto &expected, const auto &desired) noexcept {
 
@@ -152,11 +157,10 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
     }
   }
 
-  // Atomically compares the underlying rc_ptr with expected, and if they are equal,
-  // replaces the current rc_ptr with desired by move assignment, hence leaving its
+  // Atomically compares the underlying weak_ptr with expected, and if they are equal,
+  // replaces the current weak_ptr with desired by move assignment, hence leaving its
   // reference count unchanged. Otherwise returns false and leaves desired unmodified.
   auto compare_and_swap(const auto &expected, auto &&desired) noexcept -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
-    assert(false);
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       desired.release();
       return true;

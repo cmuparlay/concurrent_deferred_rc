@@ -2,14 +2,13 @@
 #ifndef PARLAY_WEAK_PTR_H_
 #define PARLAY_WEAK_PTR_H_
 
-#include <atomic>
-#include <type_traits>
+#include <cstddef>
 
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
-#include "internal/utils.hpp"
 
 #include "atomic_rc_ptr.h"
+#include "rc_ptr.h"
 
 namespace cdrc {
 

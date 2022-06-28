@@ -2,13 +2,15 @@
 #ifndef CONCURRENT_DEFERRED_RC_COUNTED_OBJECT_H
 #define CONCURRENT_DEFERRED_RC_COUNTED_OBJECT_H
 
+#include <cassert>
 #include <cstdint>
 
 #include <atomic>
-#include <memory>
+#include <new>
 #include <type_traits>
+#include <utility>
 
-#include "utils.hpp"
+#include "utils.h"
 
 namespace cdrc {
 namespace internal {

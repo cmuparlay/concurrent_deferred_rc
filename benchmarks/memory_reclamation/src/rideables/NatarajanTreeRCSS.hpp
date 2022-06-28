@@ -34,7 +34,7 @@ limitations under the License.
 #include "RetiredMonitorable.hpp"
 
 #include <cdrc/marked_arc_ptr.h>
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 // //GC Method: ssmem from LPD-EPFL
 // #ifdef NGC

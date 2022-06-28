@@ -2,6 +2,7 @@
 #ifndef CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 #define CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 
+#include <optional>
 #include <utility>
 
 #include <cdrc/atomic_rc_ptr.h>

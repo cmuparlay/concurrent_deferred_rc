@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 namespace herlihy {
 

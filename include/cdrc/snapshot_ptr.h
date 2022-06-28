@@ -2,8 +2,14 @@
 #ifndef PARLAY_ATOMIC_SNAPSHOT_PTR_H_
 #define PARLAY_ATOMIC_SNAPSHOT_PTR_H_
 
+#include <cstddef>
+
+#include <type_traits>
+
+#include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
-#include "rc_ptr.h"
+
+#include "atomic_rc_ptr.h"
 
 namespace cdrc {
 
