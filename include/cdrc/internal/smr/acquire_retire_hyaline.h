@@ -202,6 +202,12 @@ private:
   using counted_ptr_t = std::add_pointer_t<counted_object_t>;
 
 public:
+
+  static acquire_retire_hyaline& instance() {
+    static acquire_retire_hyaline ar{utils::num_threads()};
+    return ar;
+  }
+
   template<typename... Args>
   counted_ptr_t create_object(Args &&... args) {
     increment_allocations();

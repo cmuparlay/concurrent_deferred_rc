@@ -69,6 +69,11 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
 
  public:
 
+  static acquire_retire& instance() {
+    static acquire_retire ar{utils::num_threads()};
+    return ar;
+  }
+
   template<typename... Args>
   counted_ptr_t create_object(Args &&... args) {
     increment_allocations();

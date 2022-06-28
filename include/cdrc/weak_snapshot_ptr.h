@@ -1,6 +1,6 @@
 
-#ifndef PARLAY_ATOMIC_WEAK_SNAPSHOT_PTR_H_
-#define PARLAY_ATOMIC_WEAK_SNAPSHOT_PTR_H_
+#ifndef CDRC_WEAK_SNAPSHOT_PTR_H_
+#define CDRC_WEAK_SNAPSHOT_PTR_H_
 
 #include <cstddef>
 
@@ -9,7 +9,6 @@
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
 
-#include "atomic_rc_ptr.h"
 #include "rc_ptr.h"
 
 namespace cdrc {
@@ -130,11 +129,11 @@ class weak_snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T>
     return acquired_ptr.is_protected();
   }
 
-  static inline memory_manager& mm = atomic_ptr_t::mm;
+  static inline memory_manager& mm = memory_manager::instance();
 
   acquired_pointer_t acquired_ptr;
 };
 
 }  // namespace cdrc
 
-#endif  // PARLAY_ATOMIC_WEAK_SNAPSHOT_PTR_H_
+#endif  // CDRC_WEAK_SNAPSHOT_PTR_H_

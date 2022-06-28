@@ -35,7 +35,7 @@ struct epoch_tracker {
     ~Epoch() = default;
   };
 
-  static epoch_tracker &instance() {
+  static epoch_tracker& instance() {
     static epoch_tracker tracker;
     return tracker;
   }

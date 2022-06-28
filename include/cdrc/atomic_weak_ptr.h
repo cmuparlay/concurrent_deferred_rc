@@ -11,7 +11,6 @@
 #include "internal/fwd_decl.h"
 #include "internal/utils.h"
 
-#include "atomic_rc_ptr.h"
 #include "snapshot_ptr.h"
 #include "weak_ptr.h"
 #include "weak_snapshot_ptr.h"
@@ -199,7 +198,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
     }
   }
 
-  static inline memory_manager& mm = atomic_ptr_t::mm;
+  static inline memory_manager& mm = memory_manager::instance();
 
   std::atomic<counted_ptr_t> atomic_ptr;
 };

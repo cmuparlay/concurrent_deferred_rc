@@ -58,6 +58,11 @@ private:
 
 public:
 
+  static acquire_retire_ebr& instance() {
+    static acquire_retire_ebr ar{utils::num_threads()};
+    return ar;
+  }
+
   template<typename... Args>
   counted_ptr_t create_object(Args &&... args) {
     increment_allocations();

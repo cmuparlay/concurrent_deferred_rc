@@ -10,7 +10,6 @@
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
 
-#include "atomic_rc_ptr.h"
 #include "weak_ptr.h"
 
 namespace cdrc {
@@ -138,7 +137,7 @@ class rc_ptr : public pointer_policy::template rc_ptr_policy<T> {
     return ptr;
   }
 
-  static inline memory_manager& mm = atomic_ptr_t::mm;
+  static inline memory_manager& mm = memory_manager::instance();
 
   counted_ptr_t ptr;
 };

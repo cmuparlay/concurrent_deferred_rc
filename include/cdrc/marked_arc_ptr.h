@@ -28,11 +28,11 @@ class marked_ptr {
  public:
   marked_ptr() : ptr(0) {}
 
-  marked_ptr(std::nullptr_t) : ptr(0) {}
+  /* implicit */ marked_ptr(std::nullptr_t) : ptr(0) {}
 
   /* implicit */ marked_ptr(T *new_ptr) : ptr(reinterpret_cast<uintptr_t>(new_ptr)) {}
 
-  operator T* () const { return get_ptr(); }
+  /* implicit */ operator T* () const { return get_ptr(); }
 
   typename std::add_lvalue_reference_t<T> operator*() const { return *(get_ptr()); }
 
@@ -52,7 +52,7 @@ class marked_ptr {
 
   void set_ptr(T* new_ptr) { ptr = reinterpret_cast<uintptr_t>(new_ptr) | get_mark(); }
 
-  uintptr_t get_mark() const { return ptr & (ONE_BIT | TWO_BIT); }
+  [[nodiscard]] uintptr_t get_mark() const { return ptr & (ONE_BIT | TWO_BIT); }
 
   void clear_mark() { ptr = ptr & ~(ONE_BIT | TWO_BIT); }
 

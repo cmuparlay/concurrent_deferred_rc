@@ -1,13 +1,12 @@
 
-#ifndef PARLAY_WEAK_PTR_H_
-#define PARLAY_WEAK_PTR_H_
+#ifndef CDRC_WEAK_PTR_H_
+#define CDRC_WEAK_PTR_H_
 
 #include <cstddef>
 
 #include "internal/counted_object.h"
 #include "internal/fwd_decl.h"
 
-#include "atomic_rc_ptr.h"
 #include "rc_ptr.h"
 
 namespace cdrc {
@@ -109,7 +108,7 @@ class weak_ptr : public pointer_policy::template rc_ptr_policy<T> {
     return ptr;
   }
 
-  static inline memory_manager& mm = atomic_ptr_t::mm;
+  static inline memory_manager& mm = memory_manager::instance();
 
   counted_ptr_t ptr;
 };
@@ -117,4 +116,4 @@ class weak_ptr : public pointer_policy::template rc_ptr_policy<T> {
 
 }  // namespace cdrc
 
-#endif  // PARLAY_WEAK_PTR_H_
+#endif  // CDRC_WEAK_PTR_H_

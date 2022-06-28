@@ -191,7 +191,7 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
     return *this;
   }
 
-  operator rc_ptr_t() const noexcept { return load(); }
+  /* implicit */ operator rc_ptr_t() const noexcept { return load(); }
 
   bool friend operator==(const atomic_rc_ptr& p, std::nullptr_t) noexcept {
     return p.atomic_ptr.load() == nullptr;
@@ -214,7 +214,7 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
     }
   }
 
-  static inline memory_manager mm{utils::num_threads()};
+  static inline memory_manager& mm = memory_manager::instance();
 
   std::atomic<counted_ptr_t> atomic_ptr;
 };

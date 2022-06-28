@@ -65,6 +65,11 @@ struct acquire_retire_ibr : public memory_manager_base<T, acquire_retire_ibr<T, 
 
  public:
 
+  static acquire_retire_ibr& instance() {
+    static acquire_retire_ibr ar{utils::num_threads()};
+    return ar;
+  }
+
   // Augments a reference-counted object with a birth timestamp field that is
   // initialized with the value of the current epoch when the object is created
   struct stamped_counted_object : public counted_object<T> {
