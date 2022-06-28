@@ -44,6 +44,13 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get -qq install libboost-program-options-dev libhwloc-dev
+          pushd /opt
+          wget https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
+          tar -xf jemalloc-5.3.0.tar.bz2
+          cd jemalloc-5.3.0
+          ./configure
+          make
+          make install
 
       - name: Configure
         run: |

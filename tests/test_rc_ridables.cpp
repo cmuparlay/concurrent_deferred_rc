@@ -67,7 +67,7 @@ void stress_test(int num_iter) {
   Barrier barrier(NUM_THREADS);
 
   vector<thread> threads;
-  for(int p = 0; p < NUM_THREADS; p++) {
+  for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([p, &set, &keys, &barrier, &num_iter] () {
       for(int i = p; i < num_iter; i+=NUM_THREADS)
         assert(set->insert(keys[i], i, p));
@@ -99,7 +99,7 @@ void test_concurrent_delete() {
   atomic<int> remove_next = 0;
 
   vector<thread> threads;
-  for(int p = 0; p < NUM_THREADS; p++) {
+  for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([p, &set, &barrier, &remove_next, &actual_sum, &num_iter] () {
       barrier.wait();
       long long local_sum = 0;
