@@ -1,15 +1,12 @@
+#include <cassert>
 
-#include <thread>
-#include <iostream>
-#include <fstream>
-#include <memory>
 #include <atomic>
-#include <assert.h>
-#include <thread>
 #include <iostream>
 #include <fstream>
+#include <thread>
 
 #include <cdrc/atomic_rc_ptr.h>
+
 #include "../benchmarks/datastructures/stack.h"
 
 using namespace std;
@@ -63,7 +60,7 @@ void test_par() {
   thread pusher1 ([&] () {
     for(int i = 0; i < M; i++) {
       stack.push_front(i);
-      actualsum1 += i;
+      actualsum1 = actualsum1 + i;
     }
     done1 = true;
   });
@@ -71,7 +68,7 @@ void test_par() {
   thread pusher2 ([&] () {
     for(int i = 0; i < M; i++) {
       stack.push_front(i);
-      actualsum2 += i;
+      actualsum2 = actualsum2 + i;
     }
     done2 = true;
   });
@@ -79,23 +76,23 @@ void test_par() {
   thread popper1 ([&] () {
     while(!done1 || !done2 || stack.front()) {
       auto val = stack.pop_front();
-      if(val) checksum1 += val.value();
+      if(val) checksum1 = checksum1 + val.value();
     }
   });
 
   thread popper2 ([&] () {
     while(!done1 || !done2 || stack.front()) {
       auto val = stack.pop_front();
-      if(val) checksum2 += val.value();
+      if(val) checksum2 = checksum2 + val.value();
     }
   });
 
   while(!done1 || !done2) {
     auto v = stack.front();
     if(v)
-      sum += v.value();
+      sum = sum + v.value();
     if(stack.find(4))
-      sum++;
+      sum = sum + 1;
   }
 
   pusher1.join();

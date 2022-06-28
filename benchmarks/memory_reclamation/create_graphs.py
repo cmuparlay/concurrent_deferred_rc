@@ -6,7 +6,9 @@ import numpy as np
 import matplotlib as mpl
 import statistics as st
 import matplotlib as mpl
-# mpl.use('Agg')
+import multiprocessing
+
+mpl.use('Agg')
 mpl.rcParams['grid.linestyle'] = ':'
 mpl.rcParams.update({'font.size': 18})
 
@@ -17,19 +19,24 @@ import math
 import re
 import copy
 
-# font = {'weight' : 'normal',
-#       'size'   : 16}
-# mpl.rc('font', **font)
 
 names = {
+    'Hazard' : 'HP (slow)',
+    'HazardOpt' : 'HP',
     'RCU' : 'EBR',
-    'RC'  : 'DRC',
-    'RCSS'  : 'DRC (+ snapshot)',
     'Range_new'    : 'IBR',
-    'Hazard' : 'HP',
-    'HazardOpt' : 'HPopt',
     'HE' : 'HE',
     'NIL' : 'No MM',
+    'DEBRA' : 'DEBRA',
+    'RSQ' : 'HE-RSQ',
+    'RCUShared' : 'EBR-shared-queue',
+    'Hyaline' : 'Hyaline',
+    'RC'  : 'RC',
+    'RCHP'  : 'RC (HP)',
+    'RCEBR' : 'RC (EBR)',
+    'RCHE' : 'RC (HE)',
+    'RCIBR' : 'RC (IBR)',
+    'RCHyaline' : 'RC (Hyaline)',
 }
 
 colors = {
@@ -37,10 +44,17 @@ colors = {
     'RC'  : 'C1',
     'Range_new'    : 'C2',
     'Hazard' : 'C3',
-    'HazardOpt' : 'C4',
+    'HazardOpt' : 'C8',
     'HE' : 'C7',
     'NIL' : 'C6',
-    'RCSS'  : 'C5',
+    'RCHP'  : 'C5',
+    'RCEBR' : 'tab:purple',
+    'RCIBR' : 'C9',
+    'DEBRA' : 'C8',
+    'RSQ' : 'C9',
+    'RCUShared' : 'C9',
+    'Hyaline' : 'C3',
+    'RCHyaline' : 'C1',
 }
 
 markers = {
@@ -51,19 +65,19 @@ markers = {
     'HazardOpt' : '*',
     'HE' : 'x',
     'NIL' : '1',
-    'RCSS'  : 'D',
+    'RCHP'  : 'D',
+    'RCEBR' : 'P',
+    'RCIBR' : '<',
+    'DEBRA' : '>',
+    'RSQ' : '<',
+    'RCUShared' : '<',
+    'Hyaline' : 's',
+    'RCHyaline' : 'v',
 }
 
-# if len(sys.argv) == 1:
-#   results_file = 'ppopp_results_5'
-# else:
-#   results_file = sys.argv[1]
+
 indir = 'results/'
 
-# results/2020-11-17_08-40-22
-
-# if not os.path.exists(outdir + '/140_threads'):
-#   os.mkdir(outdir + '/140_threads')
 
 def avg(l):
   s = 0.0
@@ -103,7 +117,6 @@ def getAllInts(s):
       ints.append(int(t))
     except ValueError:
       pass
-  # print(s)
   return ints
 
 def firstFloat(s):
@@ -143,7 +156,6 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
     os.mkdir(outdir)
   
   this_graph_title = graph_title + '-' + exp_name
-  # print()
   print(this_graph_title)
 
   series = {}
@@ -151,7 +163,7 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
   for alg in memory_managers:
     if yaxis != 'throughput' and alg == 'NIL':
       continue
-    if onlyrc and (alg != 'RC' and alg != 'RCSS'):
+    if onlyrc and not alg.startswith('RC'):
       continue
     if to_string_3(bench, alg, threads[0], yaxis) not in results:
       continue
@@ -167,6 +179,7 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
       else:
         series[alg].append(results[to_string_3(bench, alg, th, yaxis)]/1000.0)
       error[alg].append(stddev[to_string_3(bench, alg, th, yaxis)])
+
   mn = 99999999
   mx = 0
 
@@ -182,8 +195,6 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
                                 error[alg], capsize=3, 
                                 alpha=opacity,
                                 color=colors[alg],
-                                #hatch=hatch[ds],
-                                # linestyle=linestyles[alg],
                                 markersize=10,
                                 marker='o',
                                 label=names[alg])
@@ -191,9 +202,7 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
       rects[alg] = axs.plot(threads, series[alg],
                             alpha=opacity,
                             color=colors[alg],
-                            #hatch=hatch[ds],
                             markersize=10,
-                            # marker='o',
                             marker=markers[alg],
                             label=names[alg])
   
@@ -204,37 +213,17 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
   elif yaxis == 'retired':
     axs.set(xlabel='Number of threads', ylabel='Extra nodes (Thousands)')
 
-  plt.axvline(144, linestyle='--', color='grey') 
-  # axs.set_ylim(0)
+  plt.axvline(multiprocessing.cpu_count(), linestyle='--', color='grey')
+
   legend_x = 1
   legend_y = 0.5 
   plt.xticks(threads)
-  # xticks = []
-  # for i in range(129):
-  #   if i % 32 == 0:
-  #     xticks.append(i)
-  # plt.xticks(xticks)
-  # if printLegend:
+
   plt.grid()
   plt.legend(loc='center left', bbox_to_anchor=(legend_x, legend_y))
   plt.title(this_graph_title)
   plt.savefig(outdir+this_graph_title.replace(' ', '-').replace(':', '-').replace('%','')+'.png', bbox_inches='tight')
   plt.close('all')
-
-  # if benchS == 0:
-  #   plt.title('N = ' + str(benchN) + ', ' + str(benchS) + 'load only')
-  # else
-  #   plt.title('N = ' + str(benchN) + ', ' + str(benchS) + 'load only')
-
-
-# plt.legend(loc='center left', bbox_to_anchor=(legend_x, legend_y))
-#plt.xlabel('Number of threads')
-#plt.ylabel('Throughput (Mop/s)')   
-#plt.tight_layout()
-#plt.show()
-
-
-# print 'done'
 
 
 
@@ -252,12 +241,9 @@ def readFile(filename, results, stddev, threads, benchmarks, memory_managers):
         if num[0] not in threads:
           threads.append(num[0])
         ds = line.split()[-1]
-        if 'RCSS' in ds:
-          key['mm'] = 'RCSS'
-          key['ds'] = ds[:-4]
-        elif 'RC' in ds:
-          key['mm'] = 'RC'
-          key['ds'] = ds[:-2]          
+        if 'RC' in ds:
+          key['ds'] = ds[:ds.find('RC')]
+          key['mm'] = ds[ds.find('RC'):]
         else:
           key['ds'] = ds
       if 'Prefilled' in line:
@@ -268,8 +254,6 @@ def readFile(filename, results, stddev, threads, benchmarks, memory_managers):
         key['workload'] = line.strip()
       if 'Average allocated nodes:' in line:
         val['allocated'] = firstFloat(line)
-        # print(line)
-        # print(val['allocated'])
       if 'Throughput: ' in line:
         val['throughput'] = firstFloat(line)
         val['retired'] = val['allocated'] - key['size']
@@ -285,10 +269,9 @@ def readFile(filename, results, stddev, threads, benchmarks, memory_managers):
         add_benchmark(benchmarks, key)
 
   for key in resultsRaw:
-    # print(key + ' : ' + str(len(resultsRaw[key])))
     results[key] = avg(resultsRaw[key][0:])
     stddev[key] = st.pstdev(resultsRaw[key][0:])
-  # print(results)
+
 
 def convert(exp_name):
   convert_ds = {'hashtable':'SortedUnorderedMap',
@@ -297,72 +280,33 @@ def convert(exp_name):
   }
   ds = convert_ds[exp_name.split('-')[1]]
   size = exp_name.split('-')[2].replace('M', '000K').replace('K','000')
-  up = int(exp_name.split('-')[3])
-  return ds + ', size:' + str(size) + ', Gets:' + str(100-up) + ' Updates:' + str(up) + ' RQs: 0'
+  tmp = exp_name.split('-')[3]
+  if 'rq' in tmp:
+    rq = int(tmp.replace('rq', ''))
+    up = 100 - rq
+    gets = 0
+  else:
+    up = int(tmp)
+    rq = 0
+    gets = 100 - up
+  return ds + ', size:' + str(size) + ', Gets:' + str(gets) + ' Updates:' + str(up) + ' RQs: ' + str(rq)
 
-# def tostring(ds, wl):
-#   return 'exp-'+ds+'-'+wl
 
-# def testconvert():
-#   toBenchmark = {'exp-hashtable-100K-10':'SortedUnorderedMap, size:100000, Gets:90 Updates:10 RQs: 0',
-#                  'exp-list-1000-10':'LinkedList, size:1000, Gets:90 Updates:10 RQs: 0',
-#                  'exp-bst-100K-50':'NatarajanTree, size:100000, Gets:50 Updates:50 RQs: 0',
-#                  'exp-bst-100K-10':'NatarajanTree, size:100000, Gets:90 Updates:10 RQs: 0',
-#                  'exp-bst-100K-1':'NatarajanTree, size:100000, Gets:99 Updates:1 RQs: 0',
-#                  'exp-bst-100M-10':'NatarajanTree, size:100000000, Gets:90 Updates:10 RQs: 0',
-#   }
-
-#   experiments = [("list", '1000-10'),
-#              ("hashtable", '100K-10'),
-#              ("bst", '100K-10'),
-#              ("bst", '100M-10'),
-#              ("bst", '100K-1'),
-#              ("bst", '100K-50'),]
-#   for exp in experiments:
-#     s = tostring(exp[0], exp[1])
-#     if convert(s) != toBenchmark[s]:
-#       return
-#     else:
-#       print(convert(s))
-#   print('tests passed')
-
-def graph_results_from_file(exp_name):
+def graph_results_from_file(exp_name, filename_tag):
   results = {}
   stddev = {}
   threads = []
   benchmarks = []
   memory_managers = []
 
-  # testconvert()
-
-  readFile(exp_name+'.out', results, stddev, threads, benchmarks, memory_managers)
+  readFile(exp_name+filename_tag+'.out', results, stddev, threads, benchmarks, memory_managers)
   threads.sort()
-  # threads = threads[:-3]
+
   print(threads)
   print(benchmarks)
   print(memory_managers)
 
-  memory_managers = ['RCU', 'Hazard', 'HazardOpt', 'Range_new', 'HE', 'NIL', 'RC', 'RCSS']
+  memory_managers = ['NIL', 'HazardOpt', 'RCU', 'DEBRA', 'Hazard', 'Range_new', 'HE', 'Hyaline', 'RC', 'RCHP', 'RSQ', 'RCUShared', 'RCEBR', 'RCIBR', 'RCHyaline']
 
-
-
-
-
-  create_graph(exp_name, results, stddev, convert(exp_name), memory_managers, threads, 'throughput', 'throughput', False, False)
-  # create_graph(results, stddev, benchmarks, memory_managers, threads, 'allocated', 'allocated', True, True)
-  create_graph(exp_name, results, stddev, convert(exp_name), memory_managers, threads, 'memory', 'retired', False, False)
-  # create_graph(results, stddev, benchmarks, memory_managers, threads, 'retired-rc', 'retired', True, True, True)
-
-  # create_graph(results, stddev, benchmarks, algs, threads, graph_title, False, False)
-
-# graph_results_from_file('results_bench_trivial.txt', 'ARC Load-Store Benchmark')
-# graph_results_from_file('results_intel_dec2_2019.txt', 'Benchmark (aware)')
-
-# for th in threads:
-#   s = str(th) + '\t'
-#   d = {}
-#   d['th'] = th
-#   for alg in algs:
-#     d['alg'] = alg
-#     s += str(results[to_string(d)][0]) + '\t'
-#   print(s)
+  create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'throughput', 'throughput', False, False)
+  create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'memory', 'retired', False, False)

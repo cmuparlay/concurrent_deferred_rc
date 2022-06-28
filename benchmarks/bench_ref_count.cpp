@@ -35,8 +35,7 @@ struct RefCountBenchmark : Benchmark {
       size_t n_threads = bench_params::threads;
       assert(n_threads <= utils::num_threads());
       std::vector<std::thread> threads;
-      //cout << num_cores << endl;
-      //int num_cores = bench_params::P+1;
+
       for(size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([this, p, n_threads]() {
           utils::rand::init(p+1);
@@ -80,23 +79,15 @@ struct RefCountBenchmark : Benchmark {
           for (; !done; ops++) {
             int op = utils::rand::get_rand()%100;
             int asp_index = utils::rand::get_rand()%N;
-            //cout << asp_index << endl;
             if(op < bench_params::store_percent){ // store
-              // int x = *(asp_vec[asp_index].load());
-              // int new_val = (x + 1) & (1023);
               asp_vec[asp_index].store(make_shared_int<SPType>(ops & (1023)));
             } else if(op < bench_params::store_percent + bench_params::cas_percent) {  // CAS
               cerr << "not implemented" << endl;
               exit(1);
-              // TODO: implement this
-              // SPType<int> x = asp_vec[asp_index].load();
-              // int new_val = *x + 1;
-              // SPType<int> y(new PaddedInt(new_val));
-              // asp_vec[asp_index].compare_exchange_strong(x, std::move(y));
             } else {  // load
               SPType<PaddedInt> sp = asp_vec[asp_index].load();
               int x = sp->getInt();
-              sum += x;            
+              sum = sum + x;
             }
           }
           cnt[p] = ops;
@@ -122,7 +113,6 @@ struct RefCountBenchmark : Benchmark {
       
       for (auto& t : threads) t.join();
 
-      
       // Read results
       long long int total = std::accumulate(std::begin(cnt), std::end(cnt), 0LL);
       std::cout << "\tTotal Throughput = " << total/1000000.0/elapsed_time << " Mop/s in " << elapsed_time << " second(s)" << std::endl;

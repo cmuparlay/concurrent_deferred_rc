@@ -1,7 +1,11 @@
 
+#include <climits>
+
 #include<limits>
 
 #include<cdrc/marked_arc_ptr.h>
+// #include<cdrc/internal/acquire_retire_ibr.h>
+
 
 namespace cdrc {
 
@@ -11,6 +15,10 @@ namespace cdrc {
 class atomic_linked_list {
 
   struct Node;
+  // using atomic_sp_t = marked_arc_ptr<Node, internal::acquire_retire_ibr_wrapper>;
+  // using sp_t = marked_rc_ptr<Node, internal::acquire_retire_ibr_wrapper>;
+  // using snapshot_ptr_t = marked_snapshot_ptr<Node, internal::acquire_retire_ibr_wrapper>;
+
   using atomic_sp_t = marked_arc_ptr<Node>;
   using sp_t = marked_rc_ptr<Node>;
   using snapshot_ptr_t = marked_snapshot_ptr<Node>;
@@ -23,8 +31,8 @@ class atomic_linked_list {
   };
 
 public:
-  atomic_linked_list() : tail(sp_t::make_shared(std::numeric_limits<int>::max())),
-                         head(sp_t::make_shared(std::numeric_limits<int>::min(), tail)) 
+  atomic_linked_list() : tail(sp_t::make_shared(INT_MAX)),
+                         head(sp_t::make_shared(INT_MIN, tail)) 
                          {}
 
   // Looks for key in list

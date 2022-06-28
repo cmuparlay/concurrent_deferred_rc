@@ -4,13 +4,14 @@
 #include <algorithm>
 #include <thread>
 
-// #include <rideables/HashMapRC.hpp>
-#include <rideables/NatarajanTreeRC.hpp>
-#include <rideables/LinkListRC.hpp>
-
-// #include <rideables/HashMapRCSS.hpp>
+#include <rideables/SortedUnorderedMapRCSS.hpp>
 #include <rideables/NatarajanTreeRCSS.hpp>
 #include <rideables/LinkListRCSS.hpp>
+
+#include <cdrc/internal/smr/acquire_retire.h>
+#include <cdrc/internal/smr/acquire_retire_ibr.h>
+#include <cdrc/internal/smr/acquire_retire_ebr.h>
+#include <cdrc/internal/smr/acquire_retire_hyaline.h>
 
 #include "../benchmarks/barrier.hpp"
 
@@ -121,12 +122,31 @@ void run_all_tests(int num_iter) {
   test_concurrent_delete<SetFactory>();  
 }
 
+template<typename T>
+using hp = cdrc::internal::acquire_retire<T>;
+
+template<typename T>
+using ebr = cdrc::internal::acquire_retire_ebr<T>;
+
+template<typename T>
+using ibr = cdrc::internal::acquire_retire_ibr<T>;
+
+template<typename T>
+using hyaline = cdrc::internal::acquire_retire_hyaline<T>;
+
 int main() {
-  run_all_tests<LinkListRCFactory<int, int>>(4000);
-  run_all_tests<NatarajanTreeRCFactory<int, int>>(100000);
-  // run_all_tests<HashMapRCFactory<int, int>>(100000);
-  run_all_tests<LinkListRCSSFactory<int, int>>(4000);
-  run_all_tests<NatarajanTreeRCSSFactory<int, int>>(100000);
-  // run_all_tests<HashMapRCSSFactory<int, int>>(100000);
-  return 0;
+  run_all_tests<LinkListRCSSFactory<int, int, hp>>(4000);
+  run_all_tests<LinkListRCSSFactory<int, int, ebr, cdrc::epoch_guard>>(4000);
+  run_all_tests<LinkListRCSSFactory<int, int, ibr, cdrc::epoch_guard>>(4000);
+  run_all_tests<LinkListRCSSFactory<int, int, hyaline, cdrc::hyaline_guard>>(4000);
+
+  run_all_tests<NatarajanTreeRCSSFactory<int, int, hp>>(100000);
+  run_all_tests<NatarajanTreeRCSSFactory<int, int, ebr, cdrc::epoch_guard>>(100000);
+  run_all_tests<NatarajanTreeRCSSFactory<int, int, ibr, cdrc::epoch_guard>>(100000);
+  run_all_tests<NatarajanTreeRCSSFactory<int, int, hyaline, cdrc::hyaline_guard>>(100000);
+
+  run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, hp>>(100000);
+  run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, ebr, cdrc::epoch_guard>>(100000);
+  run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, ibr, cdrc::epoch_guard>>(100000);
+  run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, hyaline, cdrc::hyaline_guard>>(100000);
 }

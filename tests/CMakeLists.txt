@@ -38,6 +38,9 @@ add_my_test(test_marked_ptrs)
 add_my_test(test_stack)
 add_my_test(test_example_linked_list)
 add_my_test(test_example_stack)
+add_my_test(test_weak_ptrs)
+add_my_test(test_queue)
+
 add_memory_reclamation_test(test_rc_ridables)
 
 # Test folly

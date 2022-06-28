@@ -35,6 +35,7 @@ class MemoryTracker;
 
 template<class T> class HETracker: public BaseTracker<T>{
 private:
+	MemoryTracker<T>* mt;
 	int task_num;
 	int he_num;
 	int epochFreq;
@@ -53,7 +54,6 @@ public:
 	};
 	
 private:
-	MemoryTracker<T>* mt;
 	padded<padded<std::atomic<uint64_t>>*>* reservations;
 	padded<uint64_t>* retire_counters;
 	padded<uint64_t>* alloc_counters;
@@ -66,7 +66,7 @@ public:
 		#ifdef NO_DESTRUCT
       return;
     #endif
-		for(int i = 0; i < task_num; i++) clear(i);
+		for(int i = 0; i < task_num; i++) clear_all(i);
 		for(int i = 0; i < task_num; i++) empty(i, false);
 		for(int i = 0; i < task_num; i++) {
 			delete[] reservations[i].ui;
@@ -151,7 +151,7 @@ public:
 	}
 	
 
-	void clear(int tid){
+	void clear_all(int tid){
 		//reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
 		for (int i = 0; i < he_num; i++){
 			reservations[tid].ui[i].ui.store(UINT64_MAX, std::memory_order_seq_cst);
@@ -182,7 +182,7 @@ public:
 		for (int i = 0; i < task_num; i++){
 			for (int j = 0; j < he_num; j++){
 				const uint64_t epo = A[i][j];
-				if (epo < birth_epoch || epo > retire_epoch){
+				if (epo < birth_epoch || epo > retire_epoch){ // TODO: don't you also have to check that retire_epoch != current epoch?
 					continue;
 				} else {
 					return false;

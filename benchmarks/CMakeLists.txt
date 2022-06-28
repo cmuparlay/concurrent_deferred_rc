@@ -13,6 +13,11 @@ function(add_benchmark TARGET)
     target_compile_options(${TARGET} PRIVATE -fconcepts)
   endif()
 
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${TARGET} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(${TARGET} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+  endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
   add_custom_target(numactl_${TARGET}
     COMMAND ${NUMA_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET} -t 128 -a arc -r 5
   )
@@ -22,7 +27,7 @@ endfunction()
 
 add_benchmark(bench_ref_count)
 add_benchmark(bench_stack)
-
+add_benchmark(bench_queue)
 
 # -------------------------------------------------------------------
 #          External Benchmarks (from the IBR/WFE benchmark suite)

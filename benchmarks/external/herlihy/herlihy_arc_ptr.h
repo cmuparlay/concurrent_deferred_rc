@@ -2,11 +2,9 @@
 #ifndef HERLIHY_ARC_PTR_H
 #define HERLIHY_ARC_PTR_H
 
-#include <cdrc/internal/acquire_retire.h>
+#include "herlihy_acquire_retire.h"
 #include "herlihy_rc_ptr.h"
 
-// optmized Herlihy's to use fetch_and_add when decrementing.
-// Also optimized it to use exchange instead of CAS loop for store
 template<typename T>
 class herlihy_arc_ptr {
 
@@ -14,7 +12,7 @@ class herlihy_arc_ptr {
 
 public:
   herlihy_arc_ptr() : atomic_ptr(nullptr) { }
-  herlihy_arc_ptr(rc_ptr_t desired) : atomic_ptr(desired.release()) { }
+  explicit herlihy_arc_ptr(rc_ptr_t desired) : atomic_ptr(desired.release()) { }
   ~herlihy_arc_ptr() {
     auto ptr = atomic_ptr.load();
     destroy(ptr);
@@ -82,13 +80,7 @@ public:
 
 private:
   friend class herlihy_rc_ptr<T, false>;
-  std::atomic<internal::herlihy_counted_object<T>*> atomic_ptr; 
-
-  // this will never be used
-  struct counted_incrementer {
-    void operator()(internal::herlihy_counted_object<T>* ptr) const {
-    }
-  };
+  std::atomic<internal::herlihy_counted_object<T>*> atomic_ptr;
   
   struct counted_deleter {
     void operator()(internal::herlihy_counted_object<T>* ptr) const {
@@ -122,7 +114,7 @@ private:
   // that it will be destructed first.
   struct internals {
     std::vector<utils::Padded<std::atomic<std::ptrdiff_t>>> num_allocated;
-    cdrc::internal::acquire_retire<internal::herlihy_counted_object<T>*, counted_deleter, counted_incrementer> ar;
+    herlihy::acquire_retire<internal::herlihy_counted_object<T>*, counted_deleter> ar;
     internals() : num_allocated(utils::num_threads()), ar(utils::num_threads()) { }
   };
 

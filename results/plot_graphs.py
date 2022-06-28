@@ -8,7 +8,20 @@ import os
 import re
 import subprocess
 
+# Use headless backend for matplotlib. This allows it
+# to run on a server without a GUI available.
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
+
+# Returns True if the given command returns a non-zero return code,
+# i.e., is probably a valid command. This will execute the given shell
+# command verbatim so it probably shouldn't have any side effects and
+# most definitely shouldn't do anything dangerous
+def valid_command(cmd):
+  DEVNULL = open(os.devnull, 'r+b', 0)
+  returncode = subprocess.call([cmd], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL, shell=True)
+  return returncode == 0
 
 class bcolors:
   HEADER = '\033[95m'
@@ -21,18 +34,29 @@ class bcolors:
   BOLD = '\033[1m'
   UNDERLINE = '\033[4m'
 
-# Match throughput/memory numbers from the output format of the benchmarks
-benchmark_throughput_pattern = re.compile('Total Throughput = (\S+) Mop/s')
-memory_usage_pattern = re.compile('Average number of allocated objects: (\S+) ')
 
-NUMA_COMMAND = 'numactl -i all '
-JEMALLOC_COMMAND = 'LD_PRELOAD=/usr/local/lib/libjemalloc.so '
+if valid_command('numactl -i all echo'):
+  NUMA_COMMAND = 'numactl -i all '
+else:
+  NUMA_COMMAND = ""
+
+if valid_command('jemalloc-config --libdir'):
+  JEMALLOC_COMMAND = "LD_PRELOAD=`jemalloc-config --libdir`/libjemalloc.so.`jemalloc-config --revision` "
+else:
+  JEMALLOC_COMMAND = ""
+
 NUM_THREADS_COMMAND = 'NUM_THREADS={} '
 
 # Plot markers and colors to use
 DEFAULT_MARKERS = ['s', 'x', 'o', 'P', '*', '|', '>', 'v', '^', '<']
 DEFAULT_COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 TERMINAL_COLORS = {'b':'\u001b[34m', 'g':'\u001b[32m', 'r':'\u001b[31m', 'c':'\u001b[36m', 'm':'\u001b[35m', 'y':'\u001b[33m', 'k':'\u001b[37m', 'tab:blue':'\u001b[94m', 'tab:orange':'\u001b[33m', 'tab:green':'\u001b[92m', 'tab:red':'\u001b[31m', 'tab:purple':'\u001b[35m', 'tab:brown':'\u001b[31m', 'tab:pink':'\u001b[95m', 'tab:gray':'\u001b[90m', 'tab:olive':'\u001b[33m', 'tab:cyan':'\u001b[96m'}
+
+# Return a sequence of thread counts suitable for benchmarking
+def get_thread_series():
+  P = multiprocessing.cpu_count()
+  p_step_size = P // 5
+  return [1] + [k*p_step_size for k in range(1,5)] + [P] + [P + k*p_step_size for k in range(1,3)]
 
 # Return the corresponding ANSI escape code for colored
 # text in the given color, or '' if the given color is
@@ -108,7 +132,8 @@ def plot_benchmarks(benchmark, benchmark_config, plot_config, output):
       # Generate the full argument list
       x_arg = '{}={}'.format(benchmark_config['xparam'], x)
       line_arg = '{}={}'.format(benchmark_config['lineparam'], line)
-      full_args = '{} {} {}'.format(x_arg, line_arg, benchmark_config['args'])
+      extra_args = benchmark_config['args'].replace('{x}', str(x)).replace('{line}', str(line))
+      full_args = '{} {} {}'.format(x_arg, line_arg, extra_args)
 
       # Format the environment variables. We replace {x} with the value of x and
       # {line} with the key of the line. This allows users to vary an environment
@@ -151,7 +176,7 @@ def create_legend(filename):
   fig = plt.figure()
   ax2 = fig.add_subplot()
   ax2.axis('off')
-  legend = ax.legend(*ax.get_legend_handles_labels(), bbox_to_anchor=(1.01, 1), frameon=False, loc='upper left', ncol=10,)
+  legend = ax.legend(*ax.get_legend_handles_labels(), bbox_to_anchor=(1.01, 1), frameon=False, loc='upper left', ncol=10)
   fig = legend.figure
   fig.canvas.draw()
   bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
@@ -162,7 +187,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('benchmark', type=str, help='The benchmark executable to run')
   parser.add_argument('--xparam', type=str, required=True, help='The benchmark parameter to vary as the x-axis of the plot')
-  parser.add_argument('--xvalues', type=str, required=True, help='A comma-separated list of parameters that denote the x values in the benchmark plot')
+  parser.add_argument('--xvalues', type=str, required=True, help='A comma-separated list of parameters that denote the x values in the benchmark plot. Alternatively, set to {threads} to automatically select a sequence of appropriate thread counts for the machine')
   parser.add_argument('--lineparam', type=str, required=True, help='The benchmark parameter to vary to produce each line on the plot')
   parser.add_argument('--linevalues', type=str, required=True, help='A comma-separated list of parameters that denote the lines in the benchmark plot')
   parser.add_argument('--baseline', type=str, required=False, help='A python lambda defining a "baseline" line to compare on the plot')
@@ -183,10 +208,6 @@ if __name__ == "__main__":
   parser.add_argument('--jemalloc', action='store_true', default=False, help='Run the benchmarks with jemalloc')
   parser.add_argument('arguments', nargs=argparse.REMAINDER, help='(Seperated by --) Additional arguments to forward to the benchmark executable')
   args = parser.parse_args()
-  
-  # Use headless backend for matplotlib. This allows it
-  # to run on a server without a GUI available.
-  matplotlib.use("Agg")
 
   # Use TrueType fonts
   matplotlib.rcParams['pdf.fonttype'] = 42
@@ -223,9 +244,10 @@ if __name__ == "__main__":
   for color,line,label,marker in zip(colors, lines, labels, markers):
     print(terminal_color(color) + '  ({}) {:<16} {}'.format(marker, line, label) + bcolors.ENDC)
   
-  # Determine the thread counts to run the benchmark on
-  # By default, use 1,2,4,...,max_cpus threads
-  xvalues = list(map(int, args.xvalues.split(',')))
+  # Determine the x values to run the benchmark on
+  # If the xvalues parameter is set to {threads}, then a sequence of thread values
+  # appropriate for the running machine will be used
+  xvalues = get_thread_series() if args.xvalues == '{threads}' else list(map(int, args.xvalues.split(',')))
   print('Using values {} for parameter {} on the x-axis'.format(', '.join(str(x) for x in xvalues), args.xparam))
 
   xbreakers = map(float, args.xbreakers.split(',')) if args.xbreakers is not None else []
@@ -250,6 +272,13 @@ if __name__ == "__main__":
   print('Arguments for benchmark executable: {}'.format(benchmark_arguments))
   print('Environment variables: {}'.format(args.env))
   if (args.baseline): print('Baseline curve: {}'.format(args.baseline))
+
+  if args.numa and NUMA_COMMAND == "":
+    print('Note: Not running with NUMA since numactl is not installed or is not valid on this system')
+
+  if args.jemalloc and JEMALLOC_COMMAND == "":
+    print('Note: Not dynamically linking jemalloc because jemalloc could not be found')
+
   print('---------------------------------------------------')
 
   benchmark_config = {

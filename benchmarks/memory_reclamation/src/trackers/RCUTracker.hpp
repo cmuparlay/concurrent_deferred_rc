@@ -24,6 +24,8 @@ limitations under the License.
 #include <queue>
 #include <list>
 #include <vector>
+#include <algorithm>
+#include <thread>
 #include <atomic>
 #include "ConcurrentPrimitives.hpp"
 #include "RAllocator.hpp"
@@ -37,6 +39,7 @@ enum RCUType{type_RCU, type_QSBR};
 
 template<class T> class RCUTracker: public BaseTracker<T>{
 private:
+	MemoryTracker<T>* mt;
 	int task_num;
 	int freq;
 	int epochFreq;
@@ -52,13 +55,12 @@ public:
 	};
 	
 private:
-	MemoryTracker<T>* mt;
 	paddedAtomic<uint64_t>* reservations;
 	padded<uint64_t>* retire_counters;
 	padded<uint64_t>* alloc_counters;
 	padded<std::list<RCUInfo>>* retired; 
 
-	std::atomic<uint64_t> epoch;
+	alignas(128) std::atomic<uint64_t> epoch;
 
 public:
 	~RCUTracker(){
@@ -96,17 +98,16 @@ public:
 		}
 		epoch.store(0,std::memory_order_release);
 	}
-	RCUTracker(int task_num, int epochFreq, int emptyFreq) : RCUTracker(task_num,epochFreq,emptyFreq,type_RCU,true){}
 	RCUTracker(MemoryTracker<T>* mt, int task_num, int epochFreq, int emptyFreq, bool collect) : 
 		RCUTracker(mt, task_num,epochFreq,emptyFreq,type_RCU,collect){}
-
-	void __attribute__ ((deprecated)) reserve(uint64_t e, int tid){
-		return start_op(tid);
-	}
 	
+	int capped_num_threads() {
+		return std::min(task_num, (int) std::thread::hardware_concurrency());
+	}
+
 	void* alloc(int tid){
 		alloc_counters[tid]=alloc_counters[tid]+1;
-		if(alloc_counters[tid]%(epochFreq*task_num)==0){
+		if(alloc_counters[tid]%(epochFreq*capped_num_threads())==0){
 			epoch.fetch_add(1,std::memory_order_acq_rel);
 		}
 		return (void*)malloc(sizeof(T));
@@ -114,24 +115,20 @@ public:
 	void start_op(int tid){
 		if (type == type_RCU){
 			uint64_t e = epoch.load(std::memory_order_acquire);
-			reservations[tid].ui.store(e,std::memory_order_seq_cst);
+			reservations[tid].ui.exchange(e);
 		}
 		
 	}
 	void end_op(int tid){
 		if (type == type_RCU){
-			reservations[tid].ui.store(UINT64_MAX,std::memory_order_seq_cst);
+			reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
 		} else { //if type == TYPE_QSBR
 			uint64_t e = epoch.load(std::memory_order_acquire);
 			reservations[tid].ui.store(e,std::memory_order_seq_cst);
 		}
 	}
-	void reserve(int tid){
-		start_op(tid);
-	}
-	void clear(int tid){
-		end_op(tid);
-	}
+
+	void clear_all(int tid) {}
 
 
 
@@ -154,7 +151,8 @@ public:
 		RCUInfo info = RCUInfo(obj,e);
 		myTrash->push_back(info);
 		retire_counters[tid]=retire_counters[tid]+1;
-		if(collect && retire_counters[tid]%freq==0){
+		auto threshold = std::max<int>(30, freq * task_num);  // Always wait at least 30 ejects
+		if(collect && retire_counters[tid]%threshold==0){
 			empty(tid);
 		}
 	}
@@ -177,7 +175,7 @@ public:
 				mt->reclaim(res.obj, tid);
 				this->dec_retired(tid);
 			}
-			else{++iterator;}
+			else{break;}
 		}
 	}
 		

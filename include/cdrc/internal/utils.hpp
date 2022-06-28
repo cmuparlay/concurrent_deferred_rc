@@ -22,6 +22,74 @@ typedef __int128 int128_t;
 typedef unsigned __int128 uint128_t;
 const uint128_t MASK = (~uint128_t(0)>>64);
 
+// PARLAY_PREFETCH: Prefetch data into cache
+#if defined(__GNUC__)
+#define PARLAY_PREFETCH(addr, rw, locality) __builtin_prefetch ((addr), (rw), (locality))
+#elif defined(_WIN32)
+#define PARLAY_PREFETCH(addr, rw, locality)                                                 \
+  PreFetchCacheLine(((locality) ? PF_TEMPORAL_LEVEL_1 : PF_NON_TEMPORAL_LEVEL_ALL), (addr))
+#else
+#define PARLAY_PREFETCH(addr, rw, locality)
+#endif
+
+namespace cdrc {
+
+struct empty_guard_ {};
+
+template<class F>
+[[nodiscard]] auto scope_guard(F&& f) {
+  return std::unique_ptr<void, std::decay_t<F>>{(void*)1, std::forward<F>(f)};
+}
+
+namespace internal {
+
+// A vector that is stored at 64-byte-aligned memory (this
+// means that the header of the vector, not the heap buffer,
+// is aligned to 64 bytes)
+template<typename Tp>
+struct alignas(128) AlignedVector : public std::vector<Tp> {
+};
+
+// A cache-line-aligned int to prevent false sharing
+struct alignas(128) AlignedInt {
+  AlignedInt() : x(0) {}
+
+  /* implicit */ AlignedInt(unsigned int x_) : x(x_) {}
+
+  operator unsigned int() const { return x; }
+
+ private:
+  unsigned int x;
+};
+
+// A cache-line-aligned int to prevent false sharing
+struct alignas(128) AlignedLong {
+    AlignedLong() : x(0) {}
+
+    /* implicit */ AlignedLong(uint64_t x_) : x(x_) {}
+
+    operator uint64_t() const { return x; }
+
+private:
+    uint64_t x;
+};
+
+// A cache-line-aligned bool to prevent false sharing
+struct alignas(128) AlignedBool {
+  AlignedBool() : b(false) {}
+
+  /* implicit */ AlignedBool(bool b_) : b(b_) {}
+
+  operator bool() const { return b; }
+
+ private:
+  bool b;
+};
+
+}
+
+}
+
 namespace utils {
 
   size_t num_threads() {
@@ -53,8 +121,85 @@ namespace utils {
 
   };
 
-  struct ThreadID {
-    static std::vector<std::atomic<bool>> in_use; // initialzie to false
+// A wait-free atomic counter that supports increment and decrement,
+// such that attempting to increment the counter from zero fails and
+// does not perform the increment.
+//
+// Useful for implementing reference counting, where the underlying
+// managed memory is freed when the counter hits zero, so that other
+// racing threads can not increment the counter back up from zero
+//
+// Assumption: The counter should never go negative. That is, the
+// user should never decrement the counter by an amount greater
+// than its current value
+//
+// Note: The counter steals the top two bits of the integer for book-
+// keeping purposes. Hence the maximum representable value in the
+// counter is 2^(8*sizeof(T)-2) - 1
+template<typename T>
+class StickyCounter {
+  static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>);
+
+public:
+
+  [[nodiscard]] bool is_lock_free() const { return true; }
+  static constexpr bool is_always_lock_free = true;
+  [[nodiscard]] constexpr T max_value() const { return zero_pending_flag - 1; }
+
+  StickyCounter() noexcept : x(1) {}
+  explicit StickyCounter(T desired) noexcept : x(desired == 0 ? zero_flag : desired) {}
+
+  // Increment the counter by the given amount if the counter is not zero.
+  //
+  // Returns true if the increment was successful, i.e., the counter
+  // was not stuck at zero. Returns false if the counter was zero
+  bool increment(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
+    //if (x.load() & zero_flag) return false;
+    auto val = x.fetch_add(arg, order);
+    return (val & zero_flag) == 0;
+  }
+
+  // Decrement the counter by the given amount. The counter must initially be
+  // at least this amount, i.e., it is not permitted to decrement the counter
+  // to a negative number.
+  //
+  // Returns true if the counter was decremented to zero. Returns
+  // false if the counter was not decremented to zero
+  bool decrement(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
+    if (x.fetch_sub(arg, order) == arg) {
+      T expected = 0;
+      if (x.compare_exchange_strong(expected, zero_flag)) [[likely]] return true;
+      else if ((expected & zero_pending_flag) && (x.exchange(zero_flag) & zero_pending_flag)) return true;
+    }
+    return false;
+  }
+
+  // Loads the current value of the counter. If the current value is zero, it is guaranteed
+  // to remain zero until the counter is reset
+  T load(std::memory_order order = std::memory_order_seq_cst) const noexcept {
+    auto val = x.load(order);
+    if (val == 0 && x.compare_exchange_strong(val, zero_flag | zero_pending_flag)) [[unlikely]] return 0;
+    return (val & zero_flag) ? 0 : val;
+  }
+
+  // Resets the value of the counter to the given value. This may be called when the counter
+  // is zero to bring it back to a non-zero value.
+  //
+  // It is not permitted to race with an increment or decrement.
+  void reset(T desired, std::memory_order order = std::memory_order_seq_cst) noexcept {
+    x.store(desired == 0 ? zero_flag : desired, order);
+  }
+
+private:
+  static constexpr inline T zero_flag = (T(1) << (sizeof(T)*8 - 1));
+  static constexpr inline T zero_pending_flag = (T(1) << (sizeof(T)*8 - 2));
+
+  mutable std::atomic<T> x;
+};
+
+
+struct ThreadID {
+    static std::vector<std::atomic<bool>> in_use; // initialize to false
     int tid;
 
     ThreadID() {
@@ -87,7 +232,7 @@ namespace utils {
     x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
     x = x ^ (x >> 31);
     return x;
-  } 
+  }
 
   template <typename T>
   struct CustomHash;
@@ -96,21 +241,21 @@ namespace utils {
   struct CustomHash<uint64_t> {
     size_t operator()(uint64_t a) const {
       return hash64_2(a);
-    }    
+    }
   };
 
   template<class T>
   struct CustomHash<T*> {
     size_t operator()(T* a) const {
       return hash64_2((uint64_t) a);
-    }    
+    }
   };
 
   template<>
   struct CustomHash<uint128_t> {
     size_t operator()(const uint128_t &a) const {
       return hash64_2(a>>64) + hash64_2(a & MASK);
-    }    
+    }
   };
 
   namespace rand {

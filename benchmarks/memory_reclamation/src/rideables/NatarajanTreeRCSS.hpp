@@ -36,10 +36,6 @@ limitations under the License.
 #include <cdrc/marked_arc_ptr.h>
 #include <cdrc/internal/utils.hpp>
 
-using cdrc::marked_arc_ptr;
-using cdrc::marked_rc_ptr;
-using cdrc::marked_snapshot_ptr;
-
 // //GC Method: ssmem from LPD-EPFL
 // #ifdef NGC
 // #define ssmem_alloc(x,y) malloc(y)
@@ -53,35 +49,42 @@ using cdrc::marked_snapshot_ptr;
 
 // thread_local int seek_count = 0;
 
-template <class K, class V>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
 class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
+
+  struct Node;
+
+  using marked_arc_ptr = cdrc::marked_arc_ptr<Node, memory_manager<Node>>;
+  using marked_rc_ptr = cdrc::marked_rc_ptr<Node, memory_manager<Node>>;
+  using marked_snapshot_ptr = cdrc::marked_snapshot_ptr<Node, memory_manager<Node>>;
+
  private:
   /* structs*/
   struct Node{
     int level;
     K key;
     V val;
-    marked_arc_ptr<Node> left;
-    marked_arc_ptr<Node> right;
+    marked_arc_ptr left;
+    marked_arc_ptr right;
 
     virtual ~Node(){};
-    static marked_rc_ptr<Node> alloc(K k, V v, marked_rc_ptr<Node> l, marked_rc_ptr<Node> r,MemoryTracker<Node>* memory_tracker){
+    static marked_rc_ptr alloc(K k, V v, marked_rc_ptr l, marked_rc_ptr r,MemoryTracker<Node>* memory_tracker){
       return alloc(k,v,std::move(l),std::move(r),-1,memory_tracker);
     }
 
     inline bool deletable() {return true;}
-    static marked_rc_ptr<Node> alloc(K k, V v,marked_rc_ptr<Node> l, marked_rc_ptr<Node> r, int lev, MemoryTracker<Node>* memory_tracker){
-      return marked_rc_ptr<Node>::make_shared(k,v,std::move(l),std::move(r),lev);
+    static marked_rc_ptr alloc(K k, V v,marked_rc_ptr l, marked_rc_ptr r, int lev, MemoryTracker<Node>*){
+      return marked_rc_ptr::make_shared(k,v,std::move(l),std::move(r),lev);
     }
     Node(){};
-    Node(K k, V v, marked_rc_ptr<Node> l, marked_rc_ptr<Node> r,int lev):level(lev),key(k),val(v),left(std::move(l)),right(std::move(r)){};
-    Node(K k, V v, marked_rc_ptr<Node> l, marked_rc_ptr<Node> r):level(-1),key(k),val(v),left(std::move(l)),right(std::move(r)){};
+    Node(K k, V v, marked_rc_ptr l, marked_rc_ptr r,int lev):level(lev),key(k),val(v),left(std::move(l)),right(std::move(r)){};
+    Node(K k, V v, marked_rc_ptr l, marked_rc_ptr r):level(-1),key(k),val(v),left(std::move(l)),right(std::move(r)){};
   };
   struct SeekRecord{
-    marked_snapshot_ptr<Node> ancestor;
-    marked_snapshot_ptr<Node> successor;
-    marked_snapshot_ptr<Node> parent;
-    marked_snapshot_ptr<Node> leaf;
+    marked_snapshot_ptr ancestor;
+    marked_snapshot_ptr successor;
+    marked_snapshot_ptr parent;
+    marked_snapshot_ptr leaf;
   };
 
   /* variables */
@@ -90,8 +93,8 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   V defltV{};
   // Node r{infK,defltV,nullptr,nullptr,2};
   // Node s{infK,defltV,nullptr,nullptr,1};
-  marked_arc_ptr<Node> r; // immutable, can't be marked. I made it an arc pointer just so that it can support snapshots
-  marked_arc_ptr<Node> s; // immutable, can't be marked
+  marked_arc_ptr r; // immutable, can't be marked. I made it an arc pointer just so that it can support snapshots
+  marked_arc_ptr s; // immutable, can't be marked
   padded<SeekRecord>* records;
   const uintptr_t FLAG = 2;
   const uintptr_t TAG = 1;
@@ -124,13 +127,13 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   }
 
   // bit = 1 or 2
-  inline void clear_mark_bit(marked_snapshot_ptr<Node>& mptr, uintptr_t bit) {
+  inline void clear_mark_bit(marked_snapshot_ptr& mptr, uintptr_t bit) {
     uintptr_t mark = mptr.get_mark();
     uintptr_t mask = ~(1 << (bit-1));
     mptr.set_mark(mark & mask);
   }
 
-  inline bool get_mark_bit(marked_snapshot_ptr<Node>& mptr, uintptr_t bit) {
+  inline bool get_mark_bit(marked_snapshot_ptr& mptr, uintptr_t bit) {
     uintptr_t mark = mptr.get_mark();
     return mark & bit;
   }
@@ -146,9 +149,9 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   void seek(K key, int tid);
   void seekLeaf(K key, int tid);
   bool cleanup(K key, int tid);
-  void doRangeQuery(Node& k1, Node& k2, int tid, marked_snapshot_ptr<Node> root, std::map<K,V>& res);
+  void doRangeQuery(Node& k1, Node& k2, int tid, marked_snapshot_ptr root, std::map<K,V>& res);
 
-  void reportAlloc(int tid) {
+  void reportAlloc(int) {
     // counter[tid].ui++;
     // if(counter[tid].ui == 4000) {
     // 	counter[tid].ui = 0;
@@ -157,7 +160,7 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   }
 
   int64_t get_allocated() {
-    return marked_arc_ptr<Node>::currently_allocated();
+    return marked_arc_ptr::currently_allocated();
   }
 
  public:
@@ -174,21 +177,23 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
     memory_tracker = nullptr;
     r.store(Node::alloc(infK,defltV,nullptr,nullptr,2,memory_tracker));
     s.store(Node::alloc(infK,defltV,nullptr,nullptr,1,memory_tracker));
-    marked_snapshot_ptr<Node> rptr = r.get_snapshot();
-    marked_snapshot_ptr<Node> sptr = s.get_snapshot();
+    marked_snapshot_ptr rptr = r.get_snapshot();
+    marked_snapshot_ptr sptr = s.get_snapshot();
 
     rptr->right.store(Node::alloc(infK,defltV,nullptr,nullptr,2,memory_tracker));
     rptr->left.store(s.load());
     sptr->right.store(Node::alloc(infK,defltV,nullptr,nullptr,1,memory_tracker));
     sptr->left.store(Node::alloc(infK,defltV,nullptr,nullptr,0,memory_tracker));
     records = new padded<SeekRecord>[task_num]{};
-    std::cout << "constructing NatarajanTreeRCSS" << std::endl;
+    // std::cout << "constructing NatarajanTreeRCSS" << std::endl;
   };
   ~NatarajanTreeRCSS(){
 #ifdef NO_DESTRUCT
+    new marked_rc_ptr(r.exchange(nullptr));
+    new marked_rc_ptr(s.exchange(nullptr));
     return;
 #endif
-    std::cout << "destructing NatarajanTreeRCSS" << std::endl;
+    // std::cout << "destructing NatarajanTreeRCSS" << std::endl;
     delete[] records;
     delete[] counter;
   };
@@ -198,7 +203,7 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
     return sizeHelper(r.load());
   }
 
-  uint64_t sizeHelper(marked_rc_ptr<Node> node) {
+  uint64_t sizeHelper(marked_rc_ptr node) {
     assert(node.get_mark() == 0);
     if(node.get() == nullptr) return 0;
     uint64_t sum = sizeHelper(node->left.load()) + sizeHelper(node->right.load());
@@ -210,7 +215,7 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
     return keySumHelper(r.load());
   }
 
-  uint64_t keySumHelper(marked_rc_ptr<Node> node) {
+  uint64_t keySumHelper(marked_rc_ptr node) {
     assert(node.get_mark() == 0);
     if(node.get() == nullptr) return 0;
     uint64_t sum = keySumHelper(node->left.load()) + keySumHelper(node->right.load());
@@ -230,17 +235,17 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   std::map<K, V> rangeQuery(K key1, K key2, int& len, int tid);
 };
 
-template <class K, class V>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
 class NatarajanTreeRCSSFactory : public RideableFactory{
  public:
-  NatarajanTreeRCSS<K,V>* build(GlobalTestConfig* gtc){
-    return new NatarajanTreeRCSS<K,V>(gtc);
+  NatarajanTreeRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){
+    return new NatarajanTreeRCSS<K,V,memory_manager,guard_t>(gtc);
   }
 };
 
 //-------Definition----------
-template <class K, class V>
-void NatarajanTreeRCSS<K,V>::seekLeaf(K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+void NatarajanTreeRCSS<K,V,memory_manager,guard_t>::seekLeaf(K key, int tid){
   // seek_count++;
   /* initialize the seek record using sentinel nodes */
   Node keyNode{key,defltV,nullptr,nullptr};//node to be compared
@@ -249,7 +254,7 @@ void NatarajanTreeRCSS<K,V>::seekLeaf(K key, int tid){
   seekRecord->leaf.set_mark(0);
 
   assert(seekRecord->leaf);
-  marked_snapshot_ptr<Node> current = seekRecord->leaf->left.get_snapshot();
+  marked_snapshot_ptr current = seekRecord->leaf->left.get_snapshot();
   current.set_mark(0);
 
   /* traverse the tree */
@@ -271,8 +276,8 @@ void NatarajanTreeRCSS<K,V>::seekLeaf(K key, int tid){
 }
 
 //-------Definition----------
-template <class K, class V>
-void NatarajanTreeRCSS<K,V>::seek(K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+void NatarajanTreeRCSS<K,V,memory_manager,guard_t>::seek(K key, int tid){
   // seek_count++;
   /* initialize the seek record using sentinel nodes */
   Node keyNode{key,defltV,nullptr,nullptr};//node to be compared
@@ -289,7 +294,7 @@ void NatarajanTreeRCSS<K,V>::seek(K key, int tid){
   bool currentTagged = seekRecord->leaf->left.get_mark_bit(TAG);
 
   assert(seekRecord->leaf);
-  marked_snapshot_ptr<Node> current = seekRecord->leaf->left.get_snapshot();
+  marked_snapshot_ptr current = seekRecord->leaf->left.get_snapshot();
   current.set_mark(0);
 
   /* traverse the tree */
@@ -338,20 +343,20 @@ void NatarajanTreeRCSS<K,V>::seek(K key, int tid){
   return;
 }
 
-template <class K, class V>
-bool NatarajanTreeRCSS<K,V>::cleanup(K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+bool NatarajanTreeRCSS<K,V,memory_manager,guard_t>::cleanup(K key, int tid){
   Node keyNode{key,defltV,nullptr,nullptr};//node to be compared
 
   /* retrieve addresses stored in seek record */
   SeekRecord* seekRecord=&(records[tid].ui);
-  marked_snapshot_ptr<Node>& ancestor = seekRecord->ancestor;
-  marked_snapshot_ptr<Node>& successor = seekRecord->successor;
-  marked_snapshot_ptr<Node>& parent = seekRecord->parent;
+  marked_snapshot_ptr& ancestor = seekRecord->ancestor;
+  marked_snapshot_ptr& successor = seekRecord->successor;
+  marked_snapshot_ptr& parent = seekRecord->parent;
   // marked_snapshot_ptr<Node>& leaf = seekRecord->leaf;
 
-  marked_arc_ptr<Node>* successorAddr=nullptr;
-  marked_arc_ptr<Node>* childAddr=nullptr;
-  marked_arc_ptr<Node>* siblingAddr=nullptr;
+  marked_arc_ptr* successorAddr=nullptr;
+  marked_arc_ptr* childAddr=nullptr;
+  marked_arc_ptr* siblingAddr=nullptr;
 
   /* obtain address of field of ancestor node that will be modified */
   if(nodeLess(&keyNode,ancestor.get()))
@@ -379,13 +384,15 @@ bool NatarajanTreeRCSS<K,V>::cleanup(K key, int tid){
   siblingAddr->set_mark_bit(TAG);
 
   /* read the flag and address fields */
-  marked_snapshot_ptr<Node> tmpSibling=siblingAddr->get_snapshot();
+  marked_snapshot_ptr tmpSibling=siblingAddr->get_snapshot();
   clear_mark_bit(tmpSibling, TAG);
   /* make the sibling node a direct child of the ancestor node */
   // std::cout << "successor: " << successorAddr->get_snapshot().get() << " " << successorAddr->get_mark() << " " << successor.get() << std::endl;
 // std::cout << "tmpSibling: " << tmpSibling.get() << std::endl;
-  if(successor == nullptr)
+  if(successor == nullptr) {
+    // std::cout << "calling CAS" << std::endl;
     return successorAddr->compare_and_swap(parent, tmpSibling);
+  }
   else
     return successorAddr->compare_and_swap(successor, tmpSibling);
 }
@@ -407,14 +414,16 @@ bool NatarajanTreeRCSS<K,V>::cleanup(K key, int tid){
 // 	return res;
 // }
 
-template <class K, class V>
-optional<V> NatarajanTreeRCSS<K,V>::get(K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+optional<V> NatarajanTreeRCSS<K,V,memory_manager,guard_t>::get(K key, int tid){
+  [[maybe_unused]] guard_t guard;
+
   reportAlloc(tid);
   Node keyNode{key,defltV,nullptr,nullptr};//node to be compared
   optional<V> res={};
   SeekRecord* seekRecord=&(records[tid].ui);
   seekLeaf(key,tid);
-  marked_snapshot_ptr<Node>& leaf = seekRecord->leaf;
+  marked_snapshot_ptr& leaf = seekRecord->leaf;
   if(nodeEqual(&keyNode,leaf.get())){
     res = leaf->val;
   }
@@ -422,22 +431,24 @@ optional<V> NatarajanTreeRCSS<K,V>::get(K key, int tid){
   return res;
 }
 
-template <class K, class V>
-optional<V> NatarajanTreeRCSS<K,V>::put(K key, V val, int tid){ return {}; }
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+optional<V> NatarajanTreeRCSS<K,V,memory_manager,guard_t>::put(K, V, int){ return {}; }
 
-template <class K, class V>
-bool NatarajanTreeRCSS<K,V>::insert(K key, V val, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+bool NatarajanTreeRCSS<K,V,memory_manager,guard_t>::insert(K key, V val, int tid){
+  [[maybe_unused]] guard_t guard;
+
   reportAlloc(tid);
   bool res=false;
   SeekRecord* seekRecord=&(records[tid].ui);
 
-  marked_rc_ptr<Node> newInternal;
-  marked_rc_ptr<Node> newLeaf=Node::alloc(key,val,nullptr,nullptr,memory_tracker);//also for comparing keys
-  marked_arc_ptr<Node>* childAddr=nullptr;
+  marked_rc_ptr newInternal;
+  marked_rc_ptr newLeaf=Node::alloc(key,val,nullptr,nullptr,memory_tracker);//also for comparing keys
+  marked_arc_ptr* childAddr=nullptr;
   while(true){
     seek(key,tid);
-    marked_snapshot_ptr<Node>& leaf = seekRecord->leaf;
-    marked_snapshot_ptr<Node>& parent = seekRecord->parent;
+    marked_snapshot_ptr& leaf = seekRecord->leaf;
+    marked_snapshot_ptr& parent = seekRecord->parent;
     if(!nodeEqual(newLeaf.get(),leaf.get())){//key does not exist
       /* obtain address of the child field to be modified */
       if(nodeLess(newLeaf.get(),parent.get()))
@@ -446,16 +457,16 @@ bool NatarajanTreeRCSS<K,V>::insert(K key, V val, int tid){
         childAddr=&(parent->right);
 
       /* create left and right leave of newInternal */
-      marked_rc_ptr<Node> newLeft=nullptr;
-      marked_rc_ptr<Node> newRight=nullptr;
+      marked_rc_ptr newLeft=nullptr;
+      marked_rc_ptr newRight=nullptr;
       bool leftc;
       if(nodeLess(newLeaf.get(),leaf.get())){
         newLeft=std::move(newLeaf);
-        newRight=marked_rc_ptr<Node>(leaf);
+        newRight=marked_rc_ptr(leaf);
         leftc = true;
       }
       else{
-        newLeft=marked_rc_ptr<Node>(leaf);
+        newLeft=marked_rc_ptr(leaf);
         newRight=std::move(newLeaf);
         leftc = false;
       }
@@ -476,7 +487,7 @@ bool NatarajanTreeRCSS<K,V>::insert(K key, V val, int tid){
       else{//fails; help conflicting delete operation
         // auto tmpChild = childAddr->get();
         // if(getPtr(tmpChild) == leaf.get() && getMark(tmpChild) != 0){
-        marked_snapshot_ptr<Node> tmpChild=childAddr->get_snapshot();
+        marked_snapshot_ptr tmpChild=childAddr->get_snapshot();
         if(tmpChild.get() == leaf.get() && tmpChild.get_mark() != 0){
           /*
            * address of the child has not changed
@@ -502,8 +513,10 @@ bool NatarajanTreeRCSS<K,V>::insert(K key, V val, int tid){
 
 // Optimizations; avoid copy, avoid get snapshots of root (HP doesn't do that either),
 
-template <class K, class V>
-optional<V> NatarajanTreeRCSS<K,V>::remove(K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+optional<V> NatarajanTreeRCSS<K,V,memory_manager,guard_t>::remove(K key, int tid){
+  [[maybe_unused]] guard_t guard;
+
   reportAlloc(tid);
 
   bool injecting = true;
@@ -513,11 +526,11 @@ optional<V> NatarajanTreeRCSS<K,V>::remove(K key, int tid){
   Node keyNode{key,defltV,nullptr,nullptr};//node to be compared
 
   Node* leaf = nullptr;
-  marked_arc_ptr<Node>* childAddr=nullptr;
+  marked_arc_ptr* childAddr=nullptr;
   while(true){
     // std::cerr << injecting;
     seek(key,tid);
-    marked_snapshot_ptr<Node>& parent = seekRecord->parent;
+    marked_snapshot_ptr& parent = seekRecord->parent;
     /* obtain address of the child field to be modified */
     if(nodeLess(&keyNode,parent.get()))
       childAddr=&(parent->left);
@@ -541,7 +554,7 @@ optional<V> NatarajanTreeRCSS<K,V>::remove(K key, int tid){
         if(cleanup(key,tid)) break;
       }
       else{
-        marked_snapshot_ptr<Node> tmpChild=childAddr->get_snapshot();
+        marked_snapshot_ptr tmpChild=childAddr->get_snapshot();
         if(tmpChild.get() == leaf && tmpChild.get_mark() != 0){
           /*
            * address of the child has not
@@ -570,21 +583,23 @@ optional<V> NatarajanTreeRCSS<K,V>::remove(K key, int tid){
   return res;
 }
 
-template <class K, class V>
-optional<V> NatarajanTreeRCSS<K,V>::replace(K key, V val, int tid){ return {}; }
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+optional<V> NatarajanTreeRCSS<K,V,memory_manager,guard_t>::replace(K, V, int){ return {}; }
 
 // TODO: It's unclear whether or not it's better to use marked or snapshot pointers here.
-template <class K, class V>
-std::map<K, V> NatarajanTreeRCSS<K,V>::rangeQuery(K key1, K key2, int& len, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+std::map<K, V> NatarajanTreeRCSS<K,V,memory_manager,guard_t>::rangeQuery(K key1, K key2, int& len, int tid){
+  [[maybe_unused]] guard_t guard;
+  
   reportAlloc(tid);
   //NOT HP-like GC safe.
   if(key1>key2) return {};
   Node k1{key1,defltV,nullptr,nullptr};//node to be compared
   Node k2{key2,defltV,nullptr,nullptr};//node to be compared
 
-  marked_snapshot_ptr<Node> sptr = s.get_snapshot();
-  marked_snapshot_ptr<Node> leaf= sptr->left.get_snapshot();
-  marked_snapshot_ptr<Node> current = leaf->left.get_snapshot();
+  marked_snapshot_ptr sptr = s.get_snapshot();
+  marked_snapshot_ptr leaf= sptr->left.get_snapshot();
+  marked_snapshot_ptr current = leaf->left.get_snapshot();
 
   std::map<K,V> res;
   if(current)
@@ -593,10 +608,10 @@ std::map<K, V> NatarajanTreeRCSS<K,V>::rangeQuery(K key1, K key2, int& len, int 
   return res;
 }
 
-template <class K, class V>
-void NatarajanTreeRCSS<K,V>::doRangeQuery(Node& k1, Node& k2, int tid, marked_snapshot_ptr<Node> root, std::map<K,V>& res){
-  marked_snapshot_ptr<Node> left = root->left.get_snapshot();
-  marked_snapshot_ptr<Node> right = root->right.get_snapshot();
+template <class K, class V, template<typename> typename memory_manager, typename guard_t>
+void NatarajanTreeRCSS<K,V,memory_manager,guard_t>::doRangeQuery(Node& k1, Node& k2, int tid, marked_snapshot_ptr root, std::map<K,V>& res){
+  marked_snapshot_ptr left = root->left.get_snapshot();
+  marked_snapshot_ptr right = root->right.get_snapshot();
   if(!left && !right){
     if(nodeLessEqual(&k1,root.get())&&nodeLessEqual(root.get(),&k2)){
       res.emplace(root->key,root->val);

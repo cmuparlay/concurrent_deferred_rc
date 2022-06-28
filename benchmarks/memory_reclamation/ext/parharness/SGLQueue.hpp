@@ -52,7 +52,7 @@ public:
 };
 
 class SGLQueueFactory : public RContainerFactory{
-	SGLQueue* build(GlobalTestConfig* gtc){
+	SGLQueue* build(GlobalTestConfig*){
 		return new SGLQueue();
 	}
 };

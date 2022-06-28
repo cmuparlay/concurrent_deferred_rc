@@ -4,7 +4,7 @@
 
 #include <atomic>
 
-#include <cdrc/internal/acquire_retire.h>
+#include <cdrc/internal/smr/acquire_retire.h>
 
 namespace internal {
 

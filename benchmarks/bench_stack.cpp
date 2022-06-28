@@ -1,10 +1,11 @@
 
+#include <cstdlib>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <numeric>
 #include <vector>
-#include <stdlib.h>
 #include <thread>
 
 #include <boost/program_options.hpp>

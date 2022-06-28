@@ -75,7 +75,7 @@ void test_concurrent_delete() {
 
   vector<thread> threads;
   for(int p = 0; p < NUM_THREADS; p++) {
-    threads.emplace_back([p, &set, &barrier, &remove_next, &actual_sum, &num_iter] () {
+    threads.emplace_back([&set, &barrier, &remove_next, &actual_sum, &num_iter] () {
       barrier.wait();
       long long local_sum = 0;
       while(true) {

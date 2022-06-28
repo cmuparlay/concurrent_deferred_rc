@@ -2,12 +2,12 @@
 #ifndef AR_LOCKFREE_H
 #define AR_LOCKFREE_H
 
-#include <algorithm>
-#include <atomic>
 #include <iostream>
-#include <optional>
-#include <unordered_set>
 #include <vector>
+#include <unordered_set>
+#include <atomic>
+#include <algorithm>    // std::remove_if
+#include <optional>
 
 #include <cdrc/internal/utils.hpp>
 

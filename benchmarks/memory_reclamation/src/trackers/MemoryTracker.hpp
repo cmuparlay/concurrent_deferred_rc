@@ -30,20 +30,27 @@ limitations under the License.
 
 #include "BaseTracker.hpp"
 #include "RCUTracker.hpp"
+#include "RCUSharedTracker.hpp"
 #include "RangeTrackerNew.hpp"
 #include "HazardTracker.hpp"
 #include "HazardOptTracker.hpp"
 // #include "ARTracker.hpp"
+// #include "HyalineOTrackerEL.hpp"
+#include "HyalineTracker.hpp"
 #include "HETracker.hpp"
+#include "DEBRATracker.hpp"
 #include "WFETracker.hpp"
-
+// #include "OurRangeTracker.hpp"
 
 
 
 enum TrackerType{
 	//for epoch-based trackers.
 	NIL = 0,
+	DEBRA = 30,
+	RSQ = 40,
 	RCU = 2,
+	RCUShared = 22,
 	Interval = 4,
 	Range = 6,
 	Range_new = 8,
@@ -55,7 +62,9 @@ enum TrackerType{
 	HazardOpt = 21,
 	Hazard_dynamic = 3,
 	HE = 5,
-	WFE = 7
+	WFE = 7,
+	HyalineOEL = 31,
+	Hyaline = 32,
 };
 
 template<class T>
@@ -79,6 +88,8 @@ public:
 			delete ((BaseTracker<T>*) tracker);
 		} else if (type == RCU){
 			delete ((RCUTracker<T>*) tracker);
+		} else if (type == RCUShared){
+			delete ((RCUSharedTracker<T>*) tracker);
 		} else if (type == Range_new){
 			delete ((RangeTrackerNew<T>*) tracker);
 		} else if (type == Hazard){
@@ -87,6 +98,14 @@ public:
 			delete ((HazardOptTracker<T>*) tracker);
 		} else if (type == HE){
 			delete ((HETracker<T>*) tracker);
+    } else if (type == DEBRA){
+    	delete ((DEBRATracker<T>*) tracker);
+    } else if (type == Hyaline){
+     	delete ((HyalineTracker<T>*) tracker);
+    // } else if (type == HyalineOEL){
+    // 	delete ((HyalineOELTracker<T>*) tracker);
+    // } else if (type == RSQ){
+    // 	delete ((OurRangeTracker<T>*) tracker);
     }
 	}
 	MemoryTracker(GlobalTestConfig* gtc, int epoch_freq, int empty_freq, int slot_num, bool collect){
@@ -114,6 +133,9 @@ public:
 		} else if (tracker_type == "RCU"){
 			tracker = new RCUTracker<T>(this, task_num, epoch_freq, empty_freq, collect);
 			type = RCU;
+		} else if (tracker_type == "RCUShared"){
+			tracker = new RCUSharedTracker<T>(this, task_num, epoch_freq, empty_freq, collect);
+			type = RCUShared;
 		} else if (tracker_type == "Range_new"){
 			tracker = new RangeTrackerNew<T>(this, task_num, epoch_freq, empty_freq, collect);
 			type = Range_new;
@@ -130,7 +152,19 @@ public:
 			// tracker = new HETracker<T>(task_num, slot_num, 1, collect);
 			tracker = new HETracker<T>(this, task_num, slot_num, epoch_freq, empty_freq, collect);
 			type = HE;
-		} 
+		} else if (tracker_type == "DEBRA"){
+			tracker = new DEBRATracker<T>(this, task_num, epoch_freq, empty_freq, collect);
+			type = DEBRA;
+		} else if (tracker_type == "Hyaline"){
+			tracker = new HyalineTracker<T>(this, task_num, epoch_freq, empty_freq, collect);
+			type = Hyaline;
+		// } else if (tracker_type == "HyalineOEL"){
+		// 	tracker = new HyalineOELTracker<T>(this, task_num, epoch_freq, empty_freq, collect);
+		// 	type = HyalineOEL;
+		// } else if (tracker_type == "RSQ"){
+		// 	tracker = new OurRangeTracker<T>(this, task_num, slot_num, epoch_freq, empty_freq, collect);
+		// 	type = RSQ;
+		}
 		// else if (tracker_type == "WFE"){
 		// 	tracker = new WFETracker<T>(task_num, slot_num, epoch_freq, empty_freq, collect);
 		// 	type = WFE;

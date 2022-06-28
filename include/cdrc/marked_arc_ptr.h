@@ -69,18 +69,20 @@ class marked_ptr {
 };
 
 namespace internal {
+
+template<typename memory_manager>
 class marked_ptr_policy;
+
 }  // namespace internal
 
-template<typename T>
-using marked_arc_ptr = atomic_rc_ptr<T, marked_ptr, internal::marked_ptr_policy>;
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_arc_ptr = atomic_rc_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
 
-template<typename T>
-using marked_rc_ptr = rc_ptr<T, marked_ptr, internal::marked_ptr_policy>;
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_rc_ptr = rc_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
 
-template<typename T>
-// using marked_snapshot_ptr = rc_ptr<T, internal::marked_ptr, internal::marked_ptr_policy>;
-using marked_snapshot_ptr = snapshot_ptr<T, marked_ptr, internal::marked_ptr_policy>;
+template<typename T, typename memory_manager = internal::default_memory_manager<T>>
+using marked_snapshot_ptr = snapshot_ptr<T, memory_manager, internal::marked_ptr_policy<memory_manager>>;
 
 namespace internal {
 
@@ -99,8 +101,12 @@ namespace internal {
 // manages the same object managed by the given pointers, or manages the object
 // given itself, in the case of the third overload.
 //
+template<typename memory_manager>
 class marked_ptr_policy {
  public:
+
+  template<typename T>
+  using pointer_type = marked_ptr<T>;
 
   // Adds the set_mark(uintptr_t) and get_mark() methods to atomic_rc_ptr
   template<typename T>
@@ -131,15 +137,7 @@ class marked_ptr_policy {
       }
     }
 
-    bool compare_and_set_mark(const marked_snapshot_ptr<T> &expected, int desired_mark) {
-      auto &parent = get_parent();
-      auto expected_ptr = expected.get_counted();
-      auto desired_ptr = expected.get_counted();
-      desired_ptr.set_mark(desired_mark);
-      return parent.atomic_ptr.compare_exchange_strong(expected_ptr, desired_ptr);
-    }
-
-    bool compare_and_set_mark(const marked_rc_ptr<T> &expected, int desired_mark) {
+    bool compare_and_set_mark(const auto& expected, int desired_mark) {
       auto &parent = get_parent();
       auto expected_ptr = expected.get_counted();
       auto desired_ptr = expected.get_counted();
@@ -151,18 +149,14 @@ class marked_ptr_policy {
       return get_parent().atomic_ptr.load().get_mark_bit(bit);
     }
 
-    bool contains(const marked_rc_ptr<T> &other) const { return get_parent().atomic_ptr.load() == other.ptr; }
-
-    bool contains(const marked_snapshot_ptr<T> &other) const { return get_parent().atomic_ptr.load() == other.ptr; }
+    bool contains(const auto& other) const { return get_parent().atomic_ptr.load() == other.get_counted(); }
 
    private:
     T *get_raw_ptr() const { return get_parent().atomic_ptr.load().get_ptr()->get(); }
 
-    using parent_type = atomic_rc_ptr<T, marked_ptr, marked_ptr_policy>;
-
-    parent_type &get_parent() { return *static_cast<parent_type *>(this); }
-
-    const parent_type &get_parent() const { return *static_cast<const parent_type *>(this); }
+    using parent_type = atomic_rc_ptr<T, memory_manager, marked_ptr_policy<memory_manager>>;
+    parent_type &get_parent() { return *static_cast<parent_type*>(this); }
+    const parent_type &get_parent() const { return *static_cast<const parent_type*>(this); }
   };
 
   // Adds the set_mark(uintptr_t) and get_mark() methods to rc_ptr
@@ -172,32 +166,25 @@ class marked_ptr_policy {
     void set_mark(uintptr_t mark) { get_parent().ptr.set_mark(mark); }
 
     uintptr_t get_mark() const { return get_parent().ptr.get_mark(); }
-    // void set_mark_bit(int bit) { get_parent().ptr.set_mark_bit(bit); }
-    // bool get_mark_bit(int bit) { return get_parent().ptr.get_mark_bit(bit); }
 
    private:
-    using parent_type = rc_ptr<T, marked_ptr, marked_ptr_policy>;
-
-    parent_type &get_parent() { return *static_cast<parent_type *>(this); }
-
-    const parent_type &get_parent() const { return *static_cast<const parent_type *>(this); }
+    using parent_type = rc_ptr<T, memory_manager, marked_ptr_policy<memory_manager>>;
+    parent_type &get_parent() { return *static_cast<parent_type*>(this); }
+    const parent_type &get_parent() const { return *static_cast<const parent_type*>(this); }
   };
 
   // Adds the set_mark(uintptr_t) and get_mark() methods to snapshot_ptr
   template<typename T>
   class snapshot_ptr_policy {
    public:
-    void set_mark(uintptr_t mark) { get_parent().ptr.set_mark(mark); }
+    void set_mark(uintptr_t mark) { get_parent().get_counted().set_mark(mark); }
 
-    uintptr_t get_mark() const { return get_parent().ptr.get_mark(); }
-    // void set_mark_bit(int bit) { get_parent().ptr.set_mark_bit(bit); }
-    // bool get_mark_bit(int bit) { return get_parent().ptr.get_mark_bit(bit); }
+    uintptr_t get_mark() const { return get_parent().get_counted().get_mark(); }
+
    private:
-    using parent_type = snapshot_ptr<T, marked_ptr, marked_ptr_policy>;
-
-    parent_type &get_parent() { return *static_cast<parent_type *>(this); }
-
-    const parent_type &get_parent() const { return *static_cast<const parent_type *>(this); }
+    using parent_type = snapshot_ptr<T, memory_manager, marked_ptr_policy<memory_manager>>;
+    parent_type &get_parent() { return *static_cast<parent_type*>(this); }
+    const parent_type &get_parent() const { return *static_cast<const parent_type*>(this); }
   };
 };
 
