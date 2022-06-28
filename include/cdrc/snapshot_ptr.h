@@ -84,12 +84,8 @@ class snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T> {
 
   void clear() {
     counted_ptr_t ptr = acquired_ptr.get();
-    if (acquired_ptr.is_protected()) {
-      acquired_ptr.clear_protection(mm);
-    } else {
-      if (ptr != nullptr) {
-        mm.decrement_ref_cnt(ptr);
-      }
+    if (!acquired_ptr.is_protected() && ptr != nullptr) {
+      mm.decrement_ref_cnt(ptr);
     }
     acquired_ptr.clear();
   }

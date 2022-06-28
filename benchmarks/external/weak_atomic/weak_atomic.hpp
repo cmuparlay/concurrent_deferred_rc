@@ -16,10 +16,7 @@
 namespace weak_atomic_utils {
 //POD turns T into a plain old data type
 template <class T>
-using POD =
-    typename std::conditional<(sizeof(T) == 8), uint64_t,
-        uint128_t
-    >::type;
+using POD = std::conditional_t<(sizeof(T) == 8), uint64_t,  __int128>;
 
 template<typename T>
 struct DefaultWeakAtomicTraits {

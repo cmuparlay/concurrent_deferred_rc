@@ -88,7 +88,7 @@ struct hyaline_tracker {
     batch.refs->blink = batch.first;
     Node* curr = batch.first;
     int64_t cnt = -REFC_PROTECT;
-    for(uint i = 0; i < utils::num_threads(); i++) {
+    for(size_t i = 0; i < utils::num_threads(); i++) {
       while(true) {
         Node* prev = rsrv[i].list.load();
         if(prev == invptr) break;

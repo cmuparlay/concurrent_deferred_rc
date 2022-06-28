@@ -99,7 +99,6 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
   weak_ptr_t load() const noexcept {
     auto acquired_ptr = mm.acquire(&atomic_ptr);
-    auto guard = scope_guard([&](void*) { acquired_ptr.clear_protection(mm); });
     weak_ptr_t result(acquired_ptr.get(), weak_ptr_t::AddRef::yes);
     return result;
   }
@@ -110,11 +109,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
       auto ptr = p.get();
       if (ptr && ptr->get_use_count() > 0) return weak_snapshot_ptr_t(std::move(p));
       else if (ptr == nullptr || atomic_ptr.load() == ptr) {
-        if (p.is_protected()) p.clear_protection(mm);
         return weak_snapshot_ptr_t(nullptr);
-      }
-      else {
-        if (p.is_protected()) p.clear_protection(mm);
       }
     }
   }
@@ -145,7 +140,6 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
     // thread can not clear the announcement slot (this might change one day!)
     [[maybe_unused]] auto reservation = !desired.is_protected() ? mm.reserve(desired.get_counted()) :
                                                                   mm.template reserve_nothing<counted_ptr_t>();
-    auto guard = scope_guard([&](void*) { reservation.clear_protection(mm); });
 
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       auto desired_ptr = desired.get_counted();
@@ -159,7 +153,8 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
   // Atomically compares the underlying weak_ptr with expected, and if they are equal,
   // replaces the current weak_ptr with desired by move assignment, hence leaving its
   // reference count unchanged. Otherwise returns false and leaves desired unmodified.
-  auto compare_and_swap(const auto &expected, auto &&desired) noexcept -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
+  template<typename P1, typename P2>
+  auto compare_and_swap(const P1& expected, P2&& desired) noexcept -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       desired.release();
       return true;

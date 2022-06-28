@@ -13,18 +13,12 @@
 #include <utility>
 #include <vector>
 
-const int PADDING = 64;
 
-typedef __int128 int128_t;
-typedef unsigned __int128 uint128_t;
-const uint128_t MASK = (~uint128_t(0)>>64);
+const int PADDING = 64;
 
 // PARLAY_PREFETCH: Prefetch data into cache
 #if defined(__GNUC__)
 #define PARLAY_PREFETCH(addr, rw, locality) __builtin_prefetch ((addr), (rw), (locality))
-#elif defined(_WIN32)
-#define PARLAY_PREFETCH(addr, rw, locality)                                                 \
-  PreFetchCacheLine(((locality) ? PF_TEMPORAL_LEVEL_1 : PF_NON_TEMPORAL_LEVEL_ALL), (addr))
 #else
 #define PARLAY_PREFETCH(addr, rw, locality)
 #endif
@@ -245,13 +239,6 @@ struct ThreadID {
   struct CustomHash<T*> {
     size_t operator()(T* a) const {
       return hash64_2((uint64_t) a);
-    }
-  };
-
-  template<>
-  struct CustomHash<uint128_t> {
-    size_t operator()(const uint128_t &a) const {
-      return hash64_2(a>>64) + hash64_2(a & MASK);
     }
   };
 

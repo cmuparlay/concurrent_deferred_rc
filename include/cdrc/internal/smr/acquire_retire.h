@@ -87,61 +87,10 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
 
   // An RAII wrapper around an acquired handle. Automatically
   // releases the handle when the wrapper goes out of scope.
-  // A lighter weight version of acquired_ptr
   template<typename U>
-  struct acquired {
-   public:
-    U value;
-
-    U& get() {
-      return value;
-    }
-
-    U get() const {
-      return value;
-    }
-
-    void clear_protection([[maybe_unused]] acquire_retire<T>& ar) {
-      if (value != nullptr) {
-        assert(slot != nullptr);
-        slot->store(nullptr, std::memory_order_release);
-      }
-    }
-
-
-    acquired &operator=(acquired &&other) {
-      value = other.value;
-      slot = other.slot;
-      other.value = nullptr;
-      other.slot = nullptr;
-    }
-
-    ~acquired() {
-      if (value != nullptr) {
-        assert(slot != nullptr);
-        slot->store(nullptr, std::memory_order_release);
-      }
-    }
-
-   private:
-    friend struct acquire_retire;
-
-    friend class atomic_rc_ptr;
-
-    std::atomic<counted_ptr_t> *slot;
-
-    acquired() : value(nullptr), slot(nullptr) {}
-
-    acquired(U value_, std::atomic<counted_ptr_t> &slot_) : value(value_), slot(std::addressof(slot_)) {}
-  };
-
-  // An RAII wrapper around an acquired handle. Automatically
-  // releases the handle when the wrapper goes out of scope.
-  template<typename U> //requires std::is_convertible_v<U, T>
   struct acquired_pointer {
    public:
     friend struct acquire_retire;
-    friend class atomic_rc_ptr;
 
     acquired_pointer() : value(nullptr), slot(nullptr) {}
 
@@ -152,12 +101,7 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
       other.slot = nullptr;
     }
 
-    ~acquired_pointer() {
-      // if (value != nullptr) {
-      //   assert(slot != nullptr);
-      //   slot->store(nullptr, std::memory_order_release);
-      // }
-    }
+    ~acquired_pointer() { clear_protection(); }
 
     acquired_pointer &operator=(acquired_pointer &&other) {
       value = other.value;
@@ -183,11 +127,14 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
       return slot != nullptr && value != nullptr;
     }
 
-    void clear_protection([[maybe_unused]] acquire_retire<T>& ar) {
-      slot->store(nullptr, std::memory_order_release);
+    void clear_protection() {
+      if (value != nullptr && slot != nullptr) {
+        slot->store(nullptr, std::memory_order_release);
+      }
     }
 
     void clear() {
+      clear_protection();
       value = nullptr;
       slot = nullptr;
     }
@@ -205,30 +152,30 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
       amortized_work(num_threads) {}
 
   template<typename U>
-  [[nodiscard]] acquired<U> acquire(const std::atomic<U> *p) {
+  [[nodiscard]] acquired_pointer<U> acquire(const std::atomic<U> *p) {
     auto id = utils::threadID.getTID();
     U result;
     do {
       result = p->load(std::memory_order_seq_cst);
       announcement_slots[id].announcement.store(static_cast<counted_ptr_t>(result), std::memory_order_seq_cst);
     } while (p->load(std::memory_order_seq_cst) != result);
-    return {result, announcement_slots[id].announcement};
+    return acquired_pointer<U>(result, &announcement_slots[id].announcement);
   }
 
   // Like acquire, but assuming that the caller already has a
   // copy of the handle and knows that it is protected
   template<typename U>
-  [[nodiscard]] acquired<U> reserve(U p) {
+  [[nodiscard]] acquired_pointer<U> reserve(U p) {
     auto id = utils::threadID.getTID();
     announcement_slots[id].announcement.store(static_cast<counted_ptr_t>(p),
                                               std::memory_order_seq_cst); // TODO: memory_order_release could be sufficient here
-    return {p, announcement_slots[id].announcement};
+    return acquired_pointer<U>(p, &announcement_slots[id].announcement);
   }
 
   // Dummy function for when we need to conditionally reserve
   // something, but might need to reserve nothing
   template<typename U>
-  [[nodiscard]] acquired<U> reserve_nothing() const {
+  [[nodiscard]] acquired_pointer<U> reserve_nothing() const {
     return {};
   }
 

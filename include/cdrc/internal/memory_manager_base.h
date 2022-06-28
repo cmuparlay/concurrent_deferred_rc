@@ -52,8 +52,7 @@ struct basic_acquired_pointer {
 
   [[nodiscard]] bool is_protected() const { return true; }
 
-  template<typename MemoryManager>
-  void clear_protection(MemoryManager&) {}
+  void clear_protection() {}
 
   void clear() { value = nullptr; }
 

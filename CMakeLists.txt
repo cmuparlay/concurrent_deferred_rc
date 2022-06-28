@@ -42,16 +42,14 @@ target_compile_features(concurrent_deferred_rc INTERFACE cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(concurrent_deferred_rc INTERFACE Threads::Threads)
 
-# Link boost::program_options
-find_package(Boost 1.40 COMPONENTS program_options REQUIRED)
-target_link_libraries(concurrent_deferred_rc INTERFACE Boost::program_options)
+if(NOT MSVC)
+  # Enable 16 byte CAS
+  target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
+  target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)
 
-# Enable 16 byte CAS
-target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
-target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)
-
-# The following might not be needed for 16-byte atomics
-target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
+  # The following might not be needed for 16-byte atomics
+  target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
+endif()
 
 # Configure support for just::threads, if available
 # Defines the flag JUST_THREADS_AVAILABLE in cmake,
@@ -104,9 +102,13 @@ add_subdirectory(tests)
 # -------------------------------------------------------------------
 #                           Benchmarks
 
-add_subdirectory(benchmarks)
+if(NOT MSVC)
+  add_subdirectory(benchmarks)
+endif()
 
 # -------------------------------------------------------------------
 #                           Figures
 
-add_subdirectory(results)
+if(NOT MSVC)
+  add_subdirectory(results)
+endif()

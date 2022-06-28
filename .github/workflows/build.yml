@@ -44,7 +44,6 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get -qq install libboost-program-options-dev libhwloc-dev libjemalloc-dev
-          
 
       - name: Configure
         run: |
