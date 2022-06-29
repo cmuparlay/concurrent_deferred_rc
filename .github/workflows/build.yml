@@ -55,7 +55,7 @@ jobs:
           ctest --no-tests=error --output-on-failure
 
   macos:
-    name: macOS latest AppleClang (${{matrix.build_type}})
+    name: macos-latest AppleClang (${{matrix.build_type}})
     runs-on: macos-latest
     strategy:
       matrix:

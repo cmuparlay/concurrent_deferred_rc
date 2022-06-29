@@ -231,7 +231,7 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
   }
 
   std::optional<T> front() {
-    auto ss = head.load();
+    OrcRcPtr<Node> ss = head.load();
     if (ss) return {ss->t};
     else return {};
   }
