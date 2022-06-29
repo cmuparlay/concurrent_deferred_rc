@@ -4,7 +4,7 @@ env:
   NUM_THREADS: 16
 
 jobs:
-  build:
+  ubuntu:
     name: ${{ matrix.config.os }} ${{ matrix.config.cxx }} ${{ matrix.config.note }} (${{ matrix.build_type }})
     runs-on: ${{ matrix.config.os }}
     defaults:
@@ -54,25 +54,51 @@ jobs:
           cd build
           ctest --no-tests=error --output-on-failure
 
-msvc:
-  name: windows-latest MSVC 19 (${{matrix.build_type}})
-  runs-on: windows-latest
-  strategy:
-    matrix:
-      build_type: ["Debug", "RelWithDebInfo", "Release"]
-  steps:
-    - uses: actions/checkout@v2
-    - uses: ilammy/msvc-dev-cmd@v1
-    - name: Configure
-      run: |
-        md build
-        cd build
-        cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj " ..
-    - name: Build
-      run: |
-        cd build
-        cmake --build .
-    - name: Test
-      run: |
-        cd build
-        ctest -C Debug --no-tests=error --output-on-failure
+  macos:
+    name: macOS latest AppleClang (${{matrix.build_type}})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        build_type: ["Debug", "RelWithDebInfo", "Release"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install Dependencies
+        run: |
+          brew install hwloc boost jemalloc
+      - name: Configure
+        run: |
+          md build
+          cd build
+          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj " ..
+      - name: Build
+        run: |
+          cd build
+          cmake --build .
+      - name: Test
+        run: |
+          cd build
+          ctest -C Debug --no-tests=error --output-on-failure
+
+  msvc:
+    name: windows-latest MSVC 19 (${{matrix.build_type}})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: ["Debug", "RelWithDebInfo", "Release"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure
+        run: |
+          md build
+          cd build
+          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj " ..
+      - name: Build
+        run: |
+          cd build
+          cmake --build .
+      - name: Test
+        run: |
+          cd build
+          ctest -C Debug --no-tests=error --output-on-failure
