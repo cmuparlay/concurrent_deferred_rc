@@ -70,7 +70,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj " ..
+          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ..
       - name: Build
         run: |
           cd build
