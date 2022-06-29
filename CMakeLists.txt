@@ -102,13 +102,13 @@ add_subdirectory(tests)
 # -------------------------------------------------------------------
 #                           Benchmarks
 
-if(NOT MSVC)
+if(LINUX)
   add_subdirectory(benchmarks)
 endif()
 
 # -------------------------------------------------------------------
 #                           Figures
 
-if(NOT MSVC)
+if(LINUX)
   add_subdirectory(results)
 endif()

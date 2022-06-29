@@ -49,7 +49,7 @@ add_my_test(test_example_stack)
 add_my_test(test_weak_ptrs)
 add_my_test(test_queue)
 
-if(NOT MSVC)
+if(LINUX)
   add_memory_reclamation_test(test_rc_ridables)
 endif()
 
