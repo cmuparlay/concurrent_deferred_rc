@@ -8,7 +8,7 @@
 #include <cdrc/atomic_rc_ptr.h>
 #include <cdrc/rc_ptr.h>
 
-#include "../benchmarks/common.hpp"
+#include "../common.hpp"
 
 template<typename T>
 concept SharedPointer = requires(T a) {
@@ -42,13 +42,6 @@ concept Snapshotable = requires(T a) {
   std::is_same_v<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
 };
 
-// Detect whether the given atomic storage supports swapping
-// with a given value. This helps to implement faster push
-template<typename T>
-concept Swappable = requires(T a) {
-    requires AtomicSharedPointer<T>;
-  a.swap(std::declval<T>().load());
-};
 
 // A concurrent stack that can use any given atomic shared pointer type
 //
@@ -63,10 +56,6 @@ concept Swappable = requires(T a) {
 //  - get_snapshot(): Return a snapshot to the object managed by the currently stored
 //      shared pointer. A snapshot object should guarantee that the underlying object
 //      is safe from destruction and reclamation as long as it is alive
-//  - swap(other): Swap the contents of the atomic shared pointer with the given
-//      shared pointer. The operation must be atomic from the perspective of the
-//      atomic shared pointer, but need not be with respect to the non-atomic
-//      other.
 //
 template<typename T, template<typename> typename AtomicSPType, template<typename> typename SPType>
 class alignas(64) atomic_stack {
@@ -75,10 +64,6 @@ class alignas(64) atomic_stack {
   using atomic_sp_t = AtomicSPType<Node>;
   using load_t = std::remove_cvref_t<decltype(std::declval<atomic_sp_t>().load())>;
   using sp_t = SPType<Node>;
-
-  // Should use the explicit partial specialization for OrcGC since it
-  // has different signatures and does not work with this implementation
-  static_assert(!std::is_same_v<AtomicSPType<Node>, OrcAtomicRcPtr<Node>>);
 
   // Load should return the shared_ptr-like type
   static_assert(std::is_same_v<load_t, sp_t>);
@@ -92,8 +77,8 @@ class alignas(64) atomic_stack {
 
   atomic_sp_t head;
 
-  atomic_stack(atomic_stack&) = delete;
-  void operator=(atomic_stack) = delete;
+  atomic_stack(const atomic_stack&) = delete;
+  atomic_stack& operator=(const atomic_stack&) = delete;
 
   // Return a snapshot if the atomic_ptr_type supports it,
   // otherwise perform a regular atomic load
@@ -179,7 +164,6 @@ class alignas(64) atomic_stack {
   }
 };
 
-
 // Stack specialization for OrcGC, since it unfortunately does not adhere to the C++
 // standard signatures for atomic shared pointers, so everything has to be written
 // slightly differently
@@ -234,7 +218,7 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
   }
 
   void push_front(T t) {
-    sp_t new_node = make_shared<Node, OrcRcPtr>();
+    sp_t new_node = orcgc_ptp::make_orc<Node>();
     sp_t next_node = head.load();
     new_node->t = t;
     new_node->next = next_node;
@@ -247,7 +231,7 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
   }
 
   std::optional<T> front() {
-    OrcRcPtr<Node> ss = head.load();
+    auto ss = head.load();
     if (ss) return {ss->t};
     else return {};
   }

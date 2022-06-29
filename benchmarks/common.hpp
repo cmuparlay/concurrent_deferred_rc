@@ -9,7 +9,9 @@
 #include <cdrc/rc_ptr.h>
 #include <cdrc/atomic_rc_ptr.h>
 
+#ifndef _MSC_VER
 #include "external/weak_atomic/weak_atomic.hpp"
+#endif
 
 #include "external/herlihy/herlihy_arc_ptr.h"
 #include "external/herlihy/herlihy_arc_ptr_opt.h"
@@ -57,8 +59,10 @@ template<typename T>
 using FollyAtomicStdSharedPtr = folly::atomic_shared_ptr<T>;
 #endif
 
+#ifndef _MSC_VER
 template<typename T>
 using WeakAtomicRcPtrLockfree = weak_atomic<cdrc::rc_ptr<T>, AcquireRetireLockfree>;
+#endif
 
 template<typename T>
 using SnapshottingArcPtr = cdrc::atomic_rc_ptr<T>;
@@ -188,8 +192,10 @@ void run_benchmark(std::string alg) {
   else if (alg == "folly")
     run_benchmark_helper<BenchmarkType, FollyAtomicStdSharedPtr, std::shared_ptr>("Folly atomic std::shared_ptr");
 #endif
+#ifndef _MSC_VER
   else if (alg == "weak_atomic")
     run_benchmark_helper<BenchmarkType, WeakAtomicRcPtrLockfree, OurRcPtr>("Weak Atomic rc_ptr (lockfree)");
+#endif
   else if (alg == "herlihy")
     run_benchmark_helper<BenchmarkType, herlihy_arc_ptr, HerlihyRcPtr>("Herlihy");
   else if (alg == "herlihy-opt")

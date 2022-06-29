@@ -2,6 +2,7 @@
 #ifndef CONCURRENT_DEFERRED_RC_COUNTED_OBJECT_H
 #define CONCURRENT_DEFERRED_RC_COUNTED_OBJECT_H
 
+
 #include <cassert>
 #include <cstdint>
 
@@ -18,7 +19,7 @@ namespace internal {
 // An instance of an object of type T with an atomic reference count.
 template<typename T>
 struct counted_object {
-  std::aligned_storage_t<sizeof(T), alignof(T)> storage;
+  alignas(alignof(T)) unsigned char storage[sizeof(T)];
   utils::StickyCounter<uint32_t> ref_cnt;
   utils::StickyCounter<uint32_t> weak_cnt;
 

@@ -21,7 +21,7 @@ namespace weak_ptr_queue {
 // A doubly-linked queue based on "DoubleLink"
 // http://concurrencyfreaks.blogspot.com/2017/01/doublelink-low-overhead-lock-free-queue.html
 template<typename T, template<typename> typename MemoryManager = internal::default_memory_manager>
-class alignas(128) atomic_queue {
+class atomic_queue {
 
   struct Node;
   using atomic_sp_t = atomic_rc_ptr<Node, MemoryManager<Node>>;
@@ -50,9 +50,8 @@ public:
     head.store(std::move(sentinel_node));
   };
 
-  atomic_queue(atomic_queue &) = delete;
-
-  void operator=(atomic_queue) = delete;
+  atomic_queue(const atomic_queue&) = delete;
+  atomic_queue& operator=(const atomic_queue&) = delete;
 
   ~atomic_queue() = default;
 
