@@ -7,7 +7,7 @@
 # -------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.5)
-project(CONCURRENT_DEFERRED_RC VERSION 1.0
+project(CONCURRENT_DEFERRED_RC VERSION 2.0
         DESCRIPTION "Atomic reference counting for C++"
         LANGUAGES CXX)
 

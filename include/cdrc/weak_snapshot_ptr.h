@@ -37,7 +37,7 @@ class weak_snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T>
  public:
   weak_snapshot_ptr() : acquired_ptr() {}
 
-  weak_snapshot_ptr(std::nullptr_t) : acquired_ptr() {}
+  /* implicit */ weak_snapshot_ptr(std::nullptr_t) : acquired_ptr() {}
 
   weak_snapshot_ptr(weak_snapshot_ptr &&other) noexcept: acquired_ptr(std::move(other.acquired_ptr)) {}
 
@@ -113,11 +113,21 @@ class weak_snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T>
     return acquired_ptr.get();
   }
 
+  // For converting a weak_snapshot_ptr into an rc_ptr
+  // If the ref count has already been incremented,
+  // the pointer can just be transferred, otherwise
+  // it should be incremented here.
   counted_ptr_t release() {
     auto old_ptr = acquired_ptr.getValue();
     if (acquired_ptr.is_protected()) {
-      mm.increment_ref_cnt(old_ptr);
-      acquired_ptr.clear_protection();
+      if (mm.increment_ref_cnt(old_ptr)) {
+        acquired_ptr.clear();
+        return old_ptr;
+      }
+      else {
+        acquired_ptr.clear();
+        return nullptr;
+      }
     }
     acquired_ptr.clear();
     return old_ptr;

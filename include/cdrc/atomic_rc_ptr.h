@@ -134,7 +134,8 @@ class atomic_rc_ptr : public pointer_policy::template arc_ptr_policy<T> {
   // Atomically compares the underlying rc_ptr with expected, and if they refer to
   // the same managed object, replaces the current rc_ptr with a copy of desired
   // (incrementing its reference count) and returns true. Otherwise returns false.
-  bool compare_and_swap(const auto &expected, const auto &desired) noexcept {
+  template<typename P1, typename P2>
+  bool compare_and_swap(const P1& expected, const P2& desired) noexcept {
 
     // We need to make a reservation if the desired snapshot pointer no longer has
     // an announcement slot. Otherwise, desired is protected, assuming that another
