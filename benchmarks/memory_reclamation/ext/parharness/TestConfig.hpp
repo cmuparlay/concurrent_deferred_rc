@@ -29,8 +29,9 @@ limitations under the License.
 #include <sys/time.h>
 #include <math.h>
 #include <assert.h>
-#include <malloc.h>
-#include <sys/time.h>	
+//#include <malloc.h>
+#include <cstdlib>
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <hwloc.h>
 
