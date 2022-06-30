@@ -46,7 +46,7 @@ GlobalTestConfig* gtc;
 
 template<template<class, class, template<typename> typename, typename> typename FactoryType>
 void addRideableOptions(GlobalTestConfig* testConfig, const std::string ds_name) {
-	testConfig->addRideableOption(new FactoryType<int,int,cdrc::internal::acquire_retire,cdrc::empty_guard_>, (ds_name + "RCHP").c_str());
+	testConfig->addRideableOption(new FactoryType<int,int,cdrc::internal::acquire_retire,cdrc::empty_guard>, (ds_name + "RCHP").c_str());
 	testConfig->addRideableOption(new FactoryType<int,int,cdrc::internal::acquire_retire_ebr,cdrc::epoch_guard>, (ds_name + "RCEBR").c_str());
 	testConfig->addRideableOption(new FactoryType<int,int,cdrc::internal::acquire_retire_ibr,cdrc::epoch_guard>, (ds_name + "RCIBR").c_str());
 	testConfig->addRideableOption(new FactoryType<int,int,cdrc::internal::acquire_retire_hyaline, cdrc::hyaline_guard>, (ds_name + "RCHyaline").c_str());
