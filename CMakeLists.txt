@@ -102,6 +102,7 @@ add_subdirectory(tests)
 # -------------------------------------------------------------------
 #                           Benchmarks
 
+# The memory reclamation benchmark suite only works on Linux
 if(LINUX)
   add_subdirectory(benchmarks)
 endif()

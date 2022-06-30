@@ -49,6 +49,7 @@ add_my_test(test_example_stack)
 add_my_test(test_weak_ptrs)
 add_my_test(test_queue)
 
+# The memory reclamation benchmark suite only works on Linux
 if(LINUX)
   add_memory_reclamation_test(test_rc_ridables)
 endif()

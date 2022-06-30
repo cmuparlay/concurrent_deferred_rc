@@ -100,6 +100,7 @@ void test_par() {
   popper1.join();
   popper2.join();
 
+  assert(stack.size() == 0);
   assert(checksum1 + checksum2 == actualsum1 + actualsum2);
 
   cout << sum << endl;

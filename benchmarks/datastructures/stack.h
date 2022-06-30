@@ -77,9 +77,6 @@ class alignas(64) atomic_stack {
 
   atomic_sp_t head;
 
-  atomic_stack(const atomic_stack&) = delete;
-  atomic_stack& operator=(const atomic_stack&) = delete;
-
   // Return a snapshot if the atomic_ptr_type supports it,
   // otherwise perform a regular atomic load
   auto snapshot_or_load() {
@@ -89,6 +86,9 @@ class alignas(64) atomic_stack {
 
  public:
   atomic_stack() = default;
+
+  atomic_stack(const atomic_stack&) = delete;
+  atomic_stack& operator=(const atomic_stack&) = delete;
 
   // Avoid exploding the call stack when destructing
   ~atomic_stack() {
@@ -142,7 +142,10 @@ class alignas(64) atomic_stack {
   std::optional<T> pop_front() {
     auto ss = snapshot_or_load();
     while (ss && !head.compare_exchange_weak(ss, ss->next)) {}
-    if (ss) return {ss->t};
+    if (ss) {
+      ss->next = nullptr;
+      return {ss->t};
+    }
     else return {};
   }
 
