@@ -142,10 +142,7 @@ class alignas(64) atomic_stack {
   std::optional<T> pop_front() {
     auto ss = snapshot_or_load();
     while (ss && !head.compare_exchange_weak(ss, ss->next)) {}
-    if (ss) {
-      ss->next = nullptr;
-      return {ss->t};
-    }
+    if (ss) { return {ss->t}; }
     else return {};
   }
 

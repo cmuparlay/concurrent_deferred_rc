@@ -52,6 +52,7 @@ jobs:
       - name: Test
         run: |
           cd build
+          ulimit -s 81920
           ctest --no-tests=error --output-on-failure
 
   macos:
@@ -78,6 +79,7 @@ jobs:
       - name: Test
         run: |
           cd build
+          ulimit -s 81920
           ctest -C Debug --no-tests=error --output-on-failure
 
   msvc:
@@ -93,7 +95,7 @@ jobs:
         run: |
           md build
           cd build
-          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj " ..
+          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj /F 100000000 " ..
       - name: Build
         run: |
           cd build
