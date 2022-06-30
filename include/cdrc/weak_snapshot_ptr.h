@@ -102,7 +102,7 @@ class weak_snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T>
 
  protected:
 
-  weak_snapshot_ptr(acquired_pointer_t&& acquired_ptr) :
+  explicit weak_snapshot_ptr(acquired_pointer_t&& acquired_ptr) :
       acquired_ptr(std::move(acquired_ptr)) {}
 
   counted_ptr_t get_counted() const {

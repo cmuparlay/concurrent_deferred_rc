@@ -30,15 +30,15 @@ struct RefCountBenchmark : Benchmark {
 
   RefCountBenchmark(): Benchmark(), 
                        N(bench_params::size),
-                       asp_vec(new utils::Padded<AtomicSPType<PaddedInt>>[N]) {
+                       asp_vec(new cdrc::utils::Padded<AtomicSPType<PaddedInt>>[N]) {
     if(N > 100000) {  // initialize in parallel
       size_t n_threads = bench_params::threads;
-      assert(n_threads <= utils::num_threads());
+      assert(n_threads <= cdrc::utils::num_threads());
       std::vector<std::thread> threads;
 
       for(size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([this, p, n_threads]() {
-          utils::rand::init(p+1);
+          cdrc::utils::rand::init(p+1);
           size_t chunk_size = N/n_threads + 1;
           for(size_t i = p*chunk_size; i < N && i < (p+1)*chunk_size; i++)
             asp_vec[i].store(make_shared_int<SPType>(3));
@@ -69,7 +69,7 @@ struct RefCountBenchmark : Benchmark {
 
       for (size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([&barrier, &done, this, &cnt, p]() {
-          utils::rand::init(p+1);
+          cdrc::utils::rand::init(p+1);
 
           barrier.wait();
           
@@ -77,8 +77,8 @@ struct RefCountBenchmark : Benchmark {
           volatile long long int sum = 0;
           
           for (; !done; ops++) {
-            int op = utils::rand::get_rand()%100;
-            int asp_index = utils::rand::get_rand()%N;
+            int op = cdrc::utils::rand::get_rand()%100;
+            int asp_index = cdrc::utils::rand::get_rand()%N;
             if(op < bench_params::store_percent){ // store
               asp_vec[asp_index].store(make_shared_int<SPType>(ops & (1023)));
             } else if(op < bench_params::store_percent + bench_params::cas_percent) {  // CAS
@@ -136,7 +136,7 @@ struct RefCountBenchmark : Benchmark {
   }
 
   size_t N;
-  utils::Padded<AtomicSPType<PaddedInt>> *asp_vec;
+  cdrc::utils::Padded<AtomicSPType<PaddedInt>> *asp_vec;
 };
 
 int main(int argc, char* argv[]) {

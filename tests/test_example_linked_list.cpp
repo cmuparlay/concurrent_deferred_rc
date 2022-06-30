@@ -14,7 +14,7 @@
 
 using namespace std;
 
-const size_t NUM_THREADS = utils::num_threads() - 1;
+const size_t NUM_THREADS = cdrc::utils::num_threads() - 1;
 
 void test_simple() {
   cdrc::atomic_linked_list set;

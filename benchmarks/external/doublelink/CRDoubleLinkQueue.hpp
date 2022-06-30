@@ -86,10 +86,10 @@ private:
   alignas(128) std::atomic<Node*> head;
   alignas(128) std::atomic<Node*> tail;
 
-  static inline const int MAX_THREADS = utils::num_threads();
+  static inline const int MAX_THREADS = cdrc::utils::num_threads();
   const int maxThreads;
   // We need one hazard pointer for this algorithm (1 for enqueue and 1 for dequeue)
-  static inline HazardPointersDL<Node> hp = utils::num_threads();
+  static inline HazardPointersDL<Node> hp = cdrc::utils::num_threads();
 
 
 public:
@@ -109,7 +109,7 @@ public:
 
   std::string className() { return "CRDoubleLinkQueue"; }
 
-  void enqueue(T item, const int tid = utils::threadID.getTID()) {
+  void enqueue(T item, const int tid = cdrc::utils::threadID.getTID()) {
     Node* newNode = new Node(std::move(item));
     while (true) {
       Node* ltail = hp.protectPtr(tail.load(), tid);
@@ -127,7 +127,7 @@ public:
   }
 
 
-  std::optional<T> dequeue(const int tid = utils::threadID.getTID()) {
+  std::optional<T> dequeue(const int tid = cdrc::utils::threadID.getTID()) {
     while (true) {
       Node* lhead = hp.protectPtr(head.load(), tid);
       if (lhead != head.load()) continue;

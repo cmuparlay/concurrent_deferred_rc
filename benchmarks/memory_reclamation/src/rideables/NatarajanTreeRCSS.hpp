@@ -49,7 +49,7 @@ limitations under the License.
 
 // thread_local int seek_count = 0;
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
 
   struct Node;
@@ -235,7 +235,7 @@ class NatarajanTreeRCSS : public ROrderedMap<K,V>, public RetiredMonitorable{
   std::map<K, V> rangeQuery(K key1, K key2, int& len, int tid);
 };
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class NatarajanTreeRCSSFactory : public RideableFactory{
  public:
   NatarajanTreeRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){

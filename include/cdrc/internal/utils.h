@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef CDRC_INTERNAL_UTILS_H
+#define CDRC_INTERNAL_UTILS_H
 
 #include <cstdint>
 #include <cstdlib>
@@ -25,7 +25,7 @@ const int PADDING = 64;
 
 namespace cdrc {
 
-struct empty_guard_ {};
+struct empty_guard {};
 
 template<class F>
 [[nodiscard]] auto scope_guard(F&& f) {
@@ -34,33 +34,26 @@ template<class F>
 
 namespace internal {
 
-// A vector that is stored at 64-byte-aligned memory (this
+// A vector that is stored at 128-byte-aligned memory (this
 // means that the header of the vector, not the heap buffer,
-// is aligned to 64 bytes)
+// is aligned to 128 bytes)
 template<typename Tp>
-struct alignas(128) AlignedVector : public std::vector<Tp> {
-};
+struct alignas(128) AlignedVector : public std::vector<Tp> { };
 
 // A cache-line-aligned int to prevent false sharing
 struct alignas(128) AlignedInt {
   AlignedInt() : x(0) {}
-
   /* implicit */ AlignedInt(unsigned int x_) : x(x_) {}
-
-  operator unsigned int() const { return x; }
-
+  /* implicit */ operator unsigned int() const { return x; }
  private:
   unsigned int x;
 };
 
 // A cache-line-aligned int to prevent false sharing
 struct alignas(128) AlignedLong {
-    AlignedLong() : x(0) {}
-
-    /* implicit */ AlignedLong(uint64_t x_) : x(x_) {}
-
-    operator uint64_t() const { return x; }
-
+  AlignedLong() : x(0) {}
+  /* implicit */ AlignedLong(uint64_t x_) : x(x_) {}
+  /* implicit */ operator uint64_t() const { return x; }
 private:
     uint64_t x;
 };
@@ -68,49 +61,42 @@ private:
 // A cache-line-aligned bool to prevent false sharing
 struct alignas(128) AlignedBool {
   AlignedBool() : b(false) {}
-
   /* implicit */ AlignedBool(bool b_) : b(b_) {}
-
-  operator bool() const { return b; }
-
+  /* implicit */ operator bool() const { return b; }
  private:
   bool b;
 };
 
-}
-
-}
+}  // namespace internal
 
 namespace utils {
 
-  size_t num_threads() {
-    static size_t n_threads = []() -> size_t {
-      if (const auto env_p = std::getenv("NUM_THREADS")) {
-        return std::stoi(env_p) + 1;
-      } else {
-        return std::thread::hardware_concurrency() + 1;
-      }
-    }();
-    return n_threads;
-  }
+size_t num_threads() {
+  static size_t n_threads = []() -> size_t {
+    if (const auto env_p = std::getenv("NUM_THREADS")) {
+      return std::stoi(env_p) + 1;
+    } else {
+      return std::thread::hardware_concurrency() + 1;
+    }
+  }();
+  return n_threads;
+}
 
-  template<typename T, typename Sfinae = void>
-  struct Padded;
+template<typename T, typename Sfinae = void>
+struct Padded;
 
-  // Use user-defined conversions to pad primitive types
-  template<typename T>
-  struct alignas(128) Padded<T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
-    Padded() = default;
-    Padded(T _x) : x(_x) { }
-    operator T() { return x; }
-    T x;
-  };
+// Use user-defined conversions to pad primitive types
+template<typename T>
+struct alignas(128) Padded<T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
+  Padded() = default;
+  /* implicit */ Padded(T _x) : x(_x) { }
+  /* implicit */ operator T() { return x; }
+  T x;
+};
 
-  // Use inheritance to pad class types
-  template<typename T>
-  struct alignas(128) Padded<T, typename std::enable_if<std::is_class<T>::value>::type> : public T {
-
-  };
+// Use inheritance to pad class types
+template<typename T>
+struct alignas(128) Padded<T, typename std::enable_if<std::is_class<T>::value>::type> : public T { };
 
 // A wait-free atomic counter that supports increment and decrement,
 // such that attempting to increment the counter from zero fails and
@@ -190,79 +176,82 @@ private:
 
 
 struct ThreadID {
-    static std::vector<std::atomic<bool>> in_use; // initialize to false
-    int tid;
+  static std::vector<std::atomic<bool>> in_use; // initialize to false
+  int tid;
 
-    ThreadID() {
-      for(size_t i = 0; i < num_threads(); i++) {
-        bool expected = false;
-        if(!in_use[i] && in_use[i].compare_exchange_strong(expected, true)) {
-          tid = i;
-          return;
-        }
+  ThreadID() {
+    for(size_t i = 0; i < num_threads(); i++) {
+      bool expected = false;
+      if(!in_use[i] && in_use[i].compare_exchange_strong(expected, true)) {
+        tid = i;
+        return;
       }
-      std::cerr << "Error: more than " << num_threads() << " threads created" << std::endl;
-      std::exit(1);
     }
-
-    ~ThreadID() {
-      in_use[tid] = false;
-    }
-
-    int getTID() { return tid; }
-  };
-
-  std::vector<std::atomic<bool>> ThreadID::in_use(num_threads());
-
-  thread_local ThreadID threadID;
-
-  // a slightly cheaper, but possibly not as good version
-  // based on splitmix64
-  inline uint64_t hash64_2(uint64_t x) {
-    x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
-    x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
-    x = x ^ (x >> 31);
-    return x;
+    std::cerr << "Error: more than " << num_threads() << " threads created" << std::endl;
+    std::exit(1);
   }
 
-  template <typename T>
-  struct CustomHash;
+  ~ThreadID() {
+    in_use[tid] = false;
+  }
 
-  template<>
-  struct CustomHash<uint64_t> {
-    size_t operator()(uint64_t a) const {
-      return hash64_2(a);
-    }
-  };
+  int getTID() const { return tid; }
+};
 
-  template<class T>
-  struct CustomHash<T*> {
-    size_t operator()(T* a) const {
-      return hash64_2((uint64_t) a);
-    }
-  };
+std::vector<std::atomic<bool>> ThreadID::in_use(num_threads());
 
-  namespace rand {
-    thread_local static unsigned long x=123456789, y=362436069, z=521288629;
+thread_local ThreadID threadID;
 
-    void init(int seed) {
-      x += seed;
-    }
+// a slightly cheaper, but possibly not as good version
+// based on splitmix64
+inline uint64_t hash64_2(uint64_t x) {
+  x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+  x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
+  x = x ^ (x >> 31);
+  return x;
+}
 
-    unsigned long get_rand(void) {          //period 2^96-1
-      unsigned long t;
-      x ^= x << 16;
-      x ^= x >> 5;
-      x ^= x << 1;
+template <typename T>
+struct CustomHash;
 
-      t = x;
-      x = y;
-      y = z;
-      z = t ^ x ^ y;
+template<>
+struct CustomHash<uint64_t> {
+  size_t operator()(uint64_t a) const {
+    return hash64_2(a);
+  }
+};
 
-      return z;
-    }
+template<class T>
+struct CustomHash<T*> {
+  size_t operator()(T* a) const {
+    return hash64_2((uint64_t) a);
+  }
+};
+
+namespace rand {
+  thread_local static unsigned long x=123456789, y=362436069, z=521288629;
+
+  void init(int seed) {
+    x += seed;
+  }
+
+  unsigned long get_rand() {          //period 2^96-1
+    unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+    t = x;
+    x = y;
+    y = z;
+    z = t ^ x ^ y;
+
+    return z;
   }
 }
 
-#endif  // UTILS_H
+}  // namespace utils
+
+}  // namespace cdrc
+
+#endif  // CDRC_INTERNAL_UTILS_H

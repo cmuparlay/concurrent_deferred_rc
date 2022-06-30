@@ -12,7 +12,7 @@
 
 using namespace std;
 
-static const size_t N = utils::num_threads() - 1;   // Number of threads
+static const size_t N = cdrc::utils::num_threads() - 1;   // Number of threads
 static const int M = 10000;                      // Number of operations per thread
 
 
@@ -147,6 +147,6 @@ void run_all_tests() {
 }
 
 int main () {
-  std::cout << "Running tests using up to " << utils::num_threads() << " threads." << std::endl;
+  std::cout << "Running tests using up to " << cdrc::utils::num_threads() << " threads." << std::endl;
   run_all_tests();
 }

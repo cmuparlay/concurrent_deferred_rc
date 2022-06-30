@@ -38,13 +38,13 @@ class rc_ptr : public pointer_policy::template rc_ptr_policy<T> {
  public:
   rc_ptr() noexcept: ptr(nullptr) {}
 
-  rc_ptr(std::nullptr_t) noexcept: ptr(nullptr) {}
+  /* implicit */ rc_ptr(std::nullptr_t) noexcept: ptr(nullptr) {}
 
-  rc_ptr(const snapshot_ptr_t &other) noexcept: ptr(other.get_counted()) {
+  /* implicit */ rc_ptr(const snapshot_ptr_t &other) noexcept: ptr(other.get_counted()) {
     if (ptr) mm.increment_ref_cnt(ptr);
   }
 
-  rc_ptr(const weak_ptr_t& other) noexcept : rc_ptr(other.lock()) { }
+  /* implicit */ rc_ptr(const weak_ptr_t& other) noexcept : rc_ptr(other.lock()) { }
 
   rc_ptr(const rc_ptr &other) noexcept: ptr(other.ptr) { if (ptr) mm.increment_ref_cnt(ptr); }
 

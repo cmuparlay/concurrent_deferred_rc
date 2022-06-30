@@ -33,15 +33,15 @@ class weak_ptr : public pointer_policy::template rc_ptr_policy<T> {
  public:
   weak_ptr() noexcept: ptr(nullptr) {}
 
-  weak_ptr(std::nullptr_t) noexcept: ptr(nullptr) {}
+  /* implicit */ weak_ptr(std::nullptr_t) noexcept: ptr(nullptr) {}
 
-  weak_ptr(const weak_snapshot_ptr_t &other) noexcept: ptr(other.get_counted()) {
+  /* implicit */ weak_ptr(const weak_snapshot_ptr_t &other) noexcept: ptr(other.get_counted()) {
     if (ptr && !mm.increment_weak_cnt(ptr)) ptr = nullptr;
   }
 
-  weak_ptr(const weak_ptr &other) noexcept: ptr(other.ptr) { if (ptr) mm.increment_weak_cnt(ptr); }
+  /* implicit */ weak_ptr(const rc_ptr_t& other) noexcept : ptr(other.ptr) { if (ptr) mm.increment_weak_cnt(ptr); }
 
-  weak_ptr(const rc_ptr_t& other) noexcept : ptr(other.ptr) { if (ptr) mm.increment_weak_cnt(ptr); }
+  weak_ptr(const weak_ptr &other) noexcept: ptr(other.ptr) { if (ptr) mm.increment_weak_cnt(ptr); }
 
   weak_ptr(weak_ptr&& other) noexcept: ptr(other.release()) {}
 

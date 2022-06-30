@@ -64,7 +64,7 @@ struct acquire_retire {
 
   template<typename U>
   [[nodiscard]] acquired<U> acquire(const std::atomic<U> *p) {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     U result;
     do {
       result = p->load(std::memory_order_seq_cst);
@@ -74,13 +74,13 @@ struct acquire_retire {
   }
 
   void release() {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     auto &slot = announcement_slots[id].announcement;
     slot.store(nullptr, std::memory_order_release);
   }
 
   void retire(T p) {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     deferred_destructs[id].push_back(p);
     work_toward_ejects(1);
   }
@@ -127,7 +127,7 @@ struct acquire_retire {
   }
 
   void work_toward_ejects(size_t work = 1) {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     amortized_work[id] = amortized_work[id] + work;
     auto threshold = std::max<size_t>(30, delay * amortized_work.size());  // Always attempt at least 30 ejects
     while (!in_progress[id] && amortized_work[id] >= threshold) {

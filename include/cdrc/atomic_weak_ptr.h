@@ -20,10 +20,13 @@ namespace cdrc {
 template<typename T, typename memory_manager, typename pointer_policy>
 class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
-  // The pointer_type template argument introduces a customization point
-  // that allows atomic_weak_ptr to be used with various kinds of marked
-  // pointers. pointer_type<T> should be implicitly convertible to T*
-  // and support all of the usual pointer-like operations.
+  // The pointer_policy template argument introduces a customization point
+  // that allows atomic_rc_ptr to be used with various kinds of marked
+  // pointers. pointer_policy should defined a typename pointer_type, which
+  // is implicitly convertible to T* and support all of the usual pointer-like
+  // operations. It should also define three member types arc_ptr_policy,
+  // rc_ptr_policy, and snapshot_ptr_policy, which can add additional methods
+  // to the corresponding pointer types. See marked_arc_ptr.h for an example.
 
  private:
   using counted_object_t = internal::counted_object<T>;
@@ -44,9 +47,9 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
  public:
   atomic_weak_ptr() : atomic_ptr(nullptr) {}
 
-  atomic_weak_ptr(std::nullptr_t) : atomic_ptr(nullptr) {}
+  /* implicit */ atomic_weak_ptr(std::nullptr_t) : atomic_ptr(nullptr) {}
 
-  atomic_weak_ptr(weak_ptr_t desired) : atomic_ptr(desired.release()) {}
+  /* implicit */ atomic_weak_ptr(weak_ptr_t desired) : atomic_ptr(desired.release()) {}
 
   ~atomic_weak_ptr() {
     auto ptr = atomic_ptr.load();
@@ -132,7 +135,7 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
 
   // Atomically compares the underlying weak_ptr with expected, and if they refer to
   // the same managed object, replaces the current weak_ptr with a copy of desired
-  // (incrementing its reference count) and returns true. Otherwise returns false.
+  // (incrementing its reference count) and returns true. Otherwise, returns false.
   template<typename P1, typename P2>
   bool compare_and_swap(const P1& expected, const P2& desired) noexcept {
 
@@ -155,7 +158,8 @@ class atomic_weak_ptr : public pointer_policy::template arc_ptr_policy<T> {
   // replaces the current weak_ptr with desired by move assignment, hence leaving its
   // reference count unchanged. Otherwise returns false and leaves desired unmodified.
   template<typename P1, typename P2>
-  auto compare_and_swap(const P1& expected, P2&& desired) noexcept -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
+  auto compare_and_swap(const P1& expected, P2&& desired) noexcept
+      -> std::enable_if_t<std::is_rvalue_reference_v<decltype(desired)>, bool> {
     if (compare_and_swap_impl(expected.get_counted(), desired.get_counted())) {
       desired.release();
       return true;

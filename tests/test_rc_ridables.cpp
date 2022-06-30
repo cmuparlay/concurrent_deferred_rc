@@ -20,7 +20,7 @@
 
 using namespace std;
 
-const size_t NUM_THREADS = utils::num_threads() - 1;
+const size_t NUM_THREADS = cdrc::utils::num_threads() - 1;
 
 template<class SetFactory>
 void test_simple() {

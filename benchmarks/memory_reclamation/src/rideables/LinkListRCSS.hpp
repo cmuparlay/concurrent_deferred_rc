@@ -28,7 +28,7 @@ limitations under the License.
 #define COLLECT true
 #endif
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class LinkListRCSSFactory : public RideableFactory{
 public: 
 	SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){

@@ -1,6 +1,6 @@
 
-#ifndef CONCURRENT_DEFERRED_RC_EPOCH_TRACKER_H
-#define CONCURRENT_DEFERRED_RC_EPOCH_TRACKER_H
+#ifndef CDRC_INTERNAL_EPOCH_TRACKER_H
+#define CDRC_INTERNAL_EPOCH_TRACKER_H
 
 #include <cassert>
 #include <cstddef>
@@ -135,4 +135,4 @@ std::invoke_result_t <F> with_epoch_guard(F &&f) {
 
 }  // namespace cdrc
 
-#endif //CONCURRENT_DEFERRED_RC_EPOCH_TRACKER_H
+#endif  // CDRC_INTERNAL_EPOCH_TRACKER_H

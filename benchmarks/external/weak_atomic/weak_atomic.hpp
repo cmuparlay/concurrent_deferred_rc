@@ -63,7 +63,7 @@ struct weak_atomic_small {
   }
 
   T load() {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     P z_bits = ar.slots[id].acquire(&x);
     T z(copy(z_bits));
     ar.slots[id].release();
@@ -71,7 +71,7 @@ struct weak_atomic_small {
   }
 
   void store(T desired) {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     P new_bits = to_bits(desired);
     P old_bits = x.exchange(new_bits, std::memory_order_seq_cst);
     set_to_empty(&desired);
@@ -84,7 +84,7 @@ struct weak_atomic_small {
   // I believe this would work for std::move(new_val) as well
   // We have to create a new copy of new_val just in case the CAS succeeds
   bool compare_exchange_strong(const T &old_val, T& new_val) {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     P old_bits = to_bits(old_val);
     P new_bits = to_bits(new_val);
     if(x.compare_exchange_strong(old_bits, new_bits, std::memory_order_seq_cst)) {
@@ -162,7 +162,7 @@ template<typename T, template<typename, typename> typename AcquireRetire, typena
 typename weak_atomic_small<T, AcquireRetire, Traits>::P weak_atomic_small<T, AcquireRetire, Traits>::empty_p = weak_atomic_small<T, AcquireRetire, Traits>::to_bits(Traits::empty_t());
 
 template<typename T, template<typename, typename> typename AcquireRetire, typename Traits>
-AcquireRetire<typename weak_atomic_small<T, AcquireRetire, Traits>::P, T> weak_atomic_small<T, AcquireRetire, Traits>::ar{static_cast<int>(utils::num_threads()), weak_atomic_small<T, AcquireRetire, Traits>::to_bits(Traits::empty_t())};
+AcquireRetire<typename weak_atomic_small<T, AcquireRetire, Traits>::P, T> weak_atomic_small<T, AcquireRetire, Traits>::ar{static_cast<int>(cdrc::utils::num_threads()), weak_atomic_small<T, AcquireRetire, Traits>::to_bits(Traits::empty_t())};
 
 
 template <typename T, template<typename, typename> typename AcquireRetire = AcquireRetireLockfree>

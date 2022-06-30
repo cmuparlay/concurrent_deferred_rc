@@ -41,7 +41,7 @@ limitations under the License.
 #define COLLECT true
 #endif
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class SortedUnorderedMapRCSS : public RUnorderedMap<K,V>, public RetiredMonitorable{
   struct Node;
 
@@ -131,7 +131,7 @@ public:
   optional<V> replace(K key, V val, int tid);
 };
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class SortedUnorderedMapRCSSFactory : public RideableFactory{
 public: 
   SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){
@@ -139,7 +139,7 @@ public:
   }
 };
 
-template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard_>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class SortedUnorderedMapRCSSTestFactory : public RideableFactory{
  public:
   SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){

@@ -49,13 +49,13 @@ void benchmark_queue(size_t num_threads, size_t num_queues, double runtime, size
 
     for (size_t t = 0; t < num_threads; t++) {
       threads.emplace_back([&queues, &barrier, &done, &cnt, t, num_queues]() {
-        utils::rand::init(t+1);
+        cdrc::utils::rand::init(t+1);
         barrier.wait();
         long long int ops = 0;
 
         for (; !done; ops++) {
-          size_t q_idx1 = utils::rand::get_rand() % num_queues;
-          size_t q_idx2 = utils::rand::get_rand() % num_queues;
+          size_t q_idx1 = cdrc::utils::rand::get_rand() % num_queues;
+          size_t q_idx2 = cdrc::utils::rand::get_rand() % num_queues;
 
           [[maybe_unused]] Guard g;
           auto val = queues[q_idx1].dequeue();

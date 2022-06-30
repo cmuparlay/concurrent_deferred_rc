@@ -96,14 +96,14 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
 
     acquired_pointer(U value_, std::atomic<counted_ptr_t>* slot_) : value(value_), slot(slot_) {}
 
-    acquired_pointer(acquired_pointer &&other) : value(other.value), slot(other.slot) {
+    acquired_pointer(acquired_pointer&& other) noexcept : value(other.value), slot(other.slot) {
       other.value = nullptr;
       other.slot = nullptr;
     }
 
     ~acquired_pointer() { clear_protection(); }
 
-    acquired_pointer &operator=(acquired_pointer &&other) {
+    acquired_pointer& operator=(acquired_pointer&& other) noexcept {
       value = other.value;
       slot = other.slot;
       other.value = nullptr;

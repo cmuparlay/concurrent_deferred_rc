@@ -1,6 +1,6 @@
 
-#ifndef CONCURRENT_DEFERRED_RC_MEMORY_MANAGER_BASE_H
-#define CONCURRENT_DEFERRED_RC_MEMORY_MANAGER_BASE_H
+#ifndef CDRC_INTERNAL_MEMORY_MANAGER_BASE_H
+#define CDRC_INTERNAL_MEMORY_MANAGER_BASE_H
 
 #include <cassert>
 #include <cstddef>
@@ -171,4 +171,4 @@ struct std::hash<typename cdrc::internal::RetireType> {
 };
 
 
-#endif //CONCURRENT_DEFERRED_RC_MEMORY_MANAGER_BASE_H
+#endif  // CDRC_INTERNAL_MEMORY_MANAGER_BASE_H

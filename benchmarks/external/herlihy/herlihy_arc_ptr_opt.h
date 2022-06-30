@@ -68,7 +68,7 @@ public:
 
   static size_t currently_allocated() {
     size_t total = 0;
-    for (size_t t = 0; t < utils::num_threads(); t++) {
+    for (size_t t = 0; t < cdrc::utils::num_threads(); t++) {
       total += internal_data.num_allocated[t].load(std::memory_order_acquire);
     }
     return total;
@@ -99,19 +99,19 @@ private:
   // destroyed first, or it will try to write to a destructed vector. Constructing it second ensures
   // that it will be destructed first.
   struct internals {
-    std::vector<utils::Padded<std::atomic<std::ptrdiff_t>>> num_allocated;
+    std::vector<cdrc::utils::Padded<std::atomic<std::ptrdiff_t>>> num_allocated;
     herlihy::acquire_retire<internal::herlihy_counted_object<T>*, counted_deleter> ar;
-    internals() : num_allocated(utils::num_threads()), ar(utils::num_threads()) { }
+    internals() : num_allocated(cdrc::utils::num_threads()), ar(cdrc::utils::num_threads()) { }
   };
 
   static void decrement_allocations() {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     auto cur = internal_data.num_allocated[id].load(std::memory_order_relaxed);
     internal_data.num_allocated[id].store(cur - 1, std::memory_order_release);
   }
 
   static void increment_allocations() {
-    auto id = utils::threadID.getTID();
+    auto id = cdrc::utils::threadID.getTID();
     auto cur = internal_data.num_allocated[id].load(std::memory_order_relaxed);
     internal_data.num_allocated[id].store(cur + 1, std::memory_order_release);
   }

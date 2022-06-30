@@ -1,6 +1,6 @@
 
-#ifndef ARC_FWD_DECL_H
-#define ARC_FWD_DECL_H
+#ifndef CDRC_INTERNAL_FWD_DECL_H
+#define CDRC_INTERNAL_FWD_DECL_H
 
 #include <type_traits>
 
@@ -153,4 +153,4 @@ using hyaline_backend = internal::acquire_retire_hyaline<T>;
 
 }  // namespace cdrc
 
-#endif //ARC_FWD_DECL_H
+#endif //CDRC_INTERNAL_FWD_DECL_H

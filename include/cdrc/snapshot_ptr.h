@@ -33,7 +33,7 @@ class snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T> {
  public:
   snapshot_ptr() : acquired_ptr() {}
 
-  snapshot_ptr(std::nullptr_t) : acquired_ptr() {}
+  /* implicit */ snapshot_ptr(std::nullptr_t) : acquired_ptr() {}
 
   snapshot_ptr(snapshot_ptr &&other) noexcept: acquired_ptr(std::move(other.acquired_ptr)) {}
 
@@ -92,7 +92,7 @@ class snapshot_ptr : public pointer_policy::template snapshot_ptr_policy<T> {
 
  protected:
 
-  snapshot_ptr(acquired_pointer_t&& acquired_ptr) :
+  explicit snapshot_ptr(acquired_pointer_t&& acquired_ptr) :
       acquired_ptr(std::move(acquired_ptr)) {}
 
   counted_ptr_t get_counted() const {

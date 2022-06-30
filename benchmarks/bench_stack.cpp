@@ -39,25 +39,25 @@ struct StackBenchmark : Benchmark {
                        stacks(N) {
     if(N > 100000) {  // initialize in parallel
       size_t n_threads = bench_params::threads;
-      assert(n_threads <= utils::num_threads());
+      assert(n_threads <= cdrc::utils::num_threads());
       std::vector<std::thread> threads;
       for(size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([this, p, n_threads]() {
-          utils::rand::init(p+1);
+          cdrc::utils::rand::init(p+1);
           size_t chunk_size = N/n_threads + 1;
           for(size_t i = p*chunk_size; i < N && i < (p+1)*chunk_size; i++) {
             for (size_t j = 0; j < bench_params::stack_size; j++) {
-              stacks[i].push_front(utils::rand::get_rand()%bench_params::stack_size);
+              stacks[i].push_front(cdrc::utils::rand::get_rand()%bench_params::stack_size);
             }
           }
         });
       }
       for (auto& t : threads) t.join();
     }
-    else { // intialize sequentially
+    else { // initialize sequentially
       for(size_t i = 0; i < N; i++) {
         for (size_t j = 0; j < bench_params::stack_size; j++) {
-          stacks[i].push_front(utils::rand::get_rand()%bench_params::stack_size);
+          stacks[i].push_front(cdrc::utils::rand::get_rand()%bench_params::stack_size);
         }
       }
     }
@@ -66,7 +66,7 @@ struct StackBenchmark : Benchmark {
   void bench() override {
     for(int i = 0; i < bench_params::iterations; i++) {
       size_t n_threads = bench_params::threads;
-      assert(n_threads <= utils::num_threads());
+      assert(n_threads <= cdrc::utils::num_threads());
 
       std::vector<long long int> cnt(n_threads);
       std::vector<std::thread> threads;
@@ -76,7 +76,7 @@ struct StackBenchmark : Benchmark {
 
       for (size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([&barrier, &done, this, &cnt, p]() {
-          utils::rand::init(p+1);
+          cdrc::utils::rand::init(p+1);
 
           barrier.wait();
 
@@ -84,11 +84,11 @@ struct StackBenchmark : Benchmark {
           long long int sum = 0;
 
           for (; !done; ops++) {
-            int op = utils::rand::get_rand()%100;
+            int op = cdrc::utils::rand::get_rand()%100;
 
             if(op < bench_params::update_percent){
-              int stack_index1 = utils::rand::get_rand()%N;
-              int stack_index2 = utils::rand::get_rand()%N;
+              int stack_index1 = cdrc::utils::rand::get_rand()%N;
+              int stack_index2 = cdrc::utils::rand::get_rand()%N;
 
               auto val = stacks[stack_index1].pop_front();
               if (val.has_value()) {
@@ -97,13 +97,13 @@ struct StackBenchmark : Benchmark {
             }
             // Do a search
             else {
-              int stack_index = utils::rand::get_rand()%N;
+              int stack_index = cdrc::utils::rand::get_rand()%N;
               if (bench_params::peek) {
                 auto val = stacks[stack_index].front();
                 sum += val.has_value();
               }
               else {
-                auto val = utils::rand::get_rand() % bench_params::stack_size;
+                auto val = cdrc::utils::rand::get_rand() % bench_params::stack_size;
                 auto found = stacks[stack_index].find(val);
                 sum += found;
               }

@@ -1,6 +1,6 @@
 
-#ifndef ARC_MARKED_ARC_PTR_H
-#define ARC_MARKED_ARC_PTR_H
+#ifndef CDRC_MARKED_ARC_PTR_H
+#define CDRC_MARKED_ARC_PTR_H
 
 #include <cassert>
 #include <cstddef>
@@ -296,4 +296,4 @@ class marked_ptr_policy {
 
 }  // namespace cdrc
 
-#endif //ARC_MARKED_ARC_PTR_H
+#endif //CDRC_MARKED_ARC_PTR_H
