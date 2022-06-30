@@ -52,7 +52,7 @@ jobs:
       - name: Test
         run: |
           cd build
-          ulimit -s 81920
+          ulimit -s 65532
           ctest --no-tests=error --output-on-failure
 
   macos:
@@ -79,7 +79,7 @@ jobs:
       - name: Test
         run: |
           cd build
-          ulimit -s 81920
+          sudo ulimit -s 65532
           ctest -C Debug --no-tests=error --output-on-failure
 
   msvc:
