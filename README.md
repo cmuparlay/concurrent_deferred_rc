@@ -1,6 +1,6 @@
 # Concurrent Deferred Reference Counting
 
-![Build Status](https://github.com/cmuparlay/concurrent_deferred_rc/actions/workflows/build.yml/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/cmuparlay/concurrent_deferred_rc/actions/workflows/build.yml/badge.svg)](https://github.com/cmuparlay/concurrent_deferred_rc/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A library for high-performance reference-counted pointers for automatic memory management in C++.
 
