@@ -1,6 +1,8 @@
 # Concurrent Deferred Reference Counting
 
-A library for high-performance reference-counted pointers for automatic memory management.
+![Build Status](https://github.com/cmuparlay/concurrent_deferred_rc/actions/workflows/build.yml/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A library for high-performance reference-counted pointers for automatic memory management in C++.
 
 This library is part of the following research project. If you use it for scientific purposes, please cite the corresponding papers:
 
@@ -16,7 +18,7 @@ into Automatic Reference Counting**<br />
 ## Getting started
 
 To use the library on its own, you can
-simply include the `include` directory. The library is header only and has no other dependencies. Our types are provided inside the namespace `cdrc`. You'll need a compiler that supports C++20.
+simply include the `include` directory. The library is header only and has no other dependencies. Our types are provided inside the namespace `cdrc`. You'll need a compiler that supports C++20. The library should work on Linux, MacOS, and Windows. The benchmarks however only work on Linux.
 
 There may be some additional dependencies to run the benchmarks. To work with the tests and benchmarks, you will need a recent version of CMake. Compiling the benchmarks will also require the [Boost](https://www.boost.org/) library, the [hwloc](https://www.open-mpi.org/projects/hwloc/) library, and the [jemalloc](https://github.com/jemalloc/jemalloc) library, but these are not required to just use our library itself. To produce the benchmark figures, you will additionally need a recent version of Python with Matplotlib.
 
