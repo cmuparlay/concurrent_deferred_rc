@@ -43,14 +43,14 @@ endfunction()
 
 # List all test cases
 add_my_test(test_marked_ptrs)
-add_my_test(test_stack)
 add_my_test(test_example_linked_list)
 add_my_test(test_example_stack)
 add_my_test(test_weak_ptrs)
-add_my_test(test_queue)
 
-# The memory reclamation benchmark suite only works on Linux
+# The benchmarks only work on Linux
 if(LINUX)
+  add_my_test(test_stack)
+  add_my_test(test_queue)
   add_memory_reclamation_test(test_rc_ridables)
 endif()
 
