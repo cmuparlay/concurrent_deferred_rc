@@ -49,8 +49,8 @@ add_my_test(test_weak_ptrs)
 
 # The benchmarks only work on Linux
 if(LINUX)
-  add_my_test(test_stack)
-  add_my_test(test_queue)
+  add_my_test(test_benchmark_stack)
+  add_my_test(test_benchmark_queue)
   add_memory_reclamation_test(test_rc_ridables)
 endif()
 

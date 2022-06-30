@@ -95,7 +95,7 @@ jobs:
         run: |
           md build
           cd build
-          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj /F 100000000 " ..
+          cmake -A x64 -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS=" /bigobj /F 65532000 " ..
       - name: Build
         run: |
           cd build

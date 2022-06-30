@@ -30,6 +30,10 @@ message(STATUS "CMAKE_INSTALL_PREFIX:           ${CMAKE_INSTALL_PREFIX}" )
 # Make sure -fno-omit-frame-pointer is set for profiling
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(LINUX TRUE)
+endif()
+
 # -------------------------------------------------------------------
 #                       Library definition
 
@@ -42,7 +46,7 @@ target_compile_features(concurrent_deferred_rc INTERFACE cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(concurrent_deferred_rc INTERFACE Threads::Threads)
 
-if(NOT MSVC)
+if(LINUX)
   # Enable 16 byte CAS
   target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
   target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)

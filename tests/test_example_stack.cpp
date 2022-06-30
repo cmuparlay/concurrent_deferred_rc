@@ -12,7 +12,7 @@
 using namespace cdrc;
 using namespace std;
 
-const int M = 10000;
+const int M = 1000;
 
 void test_seq() {
   cdrc::atomic_stack<int> stack;
