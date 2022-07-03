@@ -33,7 +33,7 @@ limitations under the License.
 #include <iostream>
 
 #include <cdrc/marked_arc_ptr.h>
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 using cdrc::marked_arc_ptr;
 using cdrc::marked_rc_ptr;
@@ -155,7 +155,7 @@ optional<V> SortedUnorderedMapRC<K,V>::get(K key, int tid) {
 }
 
 template <class K, class V> 
-optional<V> SortedUnorderedMapRC<K,V>::put(K key, V val, int tid) {}
+optional<V> SortedUnorderedMapRC<K,V>::put(K, V, int) { return {}; }
 
 template <class K, class V> 
 bool SortedUnorderedMapRC<K,V>::insert(K key, V val, int tid){
@@ -213,7 +213,7 @@ optional<V> SortedUnorderedMapRC<K,V>::remove(K key, int tid) {
 }
 
 template <class K, class V> 
-optional<V> SortedUnorderedMapRC<K,V>::replace(K key, V val, int tid) {}
+optional<V> SortedUnorderedMapRC<K,V>::replace(K, V, int) { return {}; }
 
 template <class K, class V> 
 bool SortedUnorderedMapRC<K,V>::findNode(marked_rc_ptr<Node> &prev, marked_rc_ptr<Node> &cur, marked_rc_ptr<Node> &nxt, K key, int tid){

@@ -27,7 +27,7 @@
 
 static inline bool dcas_compare_exchange_strong(std::atomic<__uint128_t> &obj,
 		__uint128_t & expected, __uint128_t desired,
-		std::memory_order succ, std::memory_order fail)
+		[[maybe_unused]] std::memory_order succ, [[maybe_unused]] std::memory_order fail)
 {
 #if defined(__x86_64__) && defined(__GNUC__) && !defined(__llvm__) && defined(__GCC_ASM_FLAG_OUTPUTS__)
 	uint64_t l = (uint64_t) desired;

@@ -54,7 +54,7 @@ public:
   // conversion from T (constructor):
   padded(const T& val):ui(val) {};
   // conversion from A (assignment):
-  padded<T>& operator= (const T& val) {ui = val; return *this;}
+  padded& operator= (const T& val) {ui = val; return *this;}
   // conversion to A (type-cast operator)
   operator T() {return T(ui);}
 };//__attribute__(( aligned(CACHE_LINE_SIZE) )); // alignment confuses valgrind by shifting bits
@@ -74,7 +74,7 @@ public:
   // conversion from T (constructor):
   paddedAtomic(const T& val):ui(val) {}
   // conversion from A (assignment):
-  paddedAtomic<T>& operator= (const T& val) {ui.store(val); return *this;}
+  paddedAtomic& operator= (const T& val) {ui.store(val); return *this;}
   // conversion to A (type-cast operator)
   operator T() {return T(ui.load());}
 };//__attribute__(( aligned(CACHE_LINE_SIZE) )); // alignment confuses valgrind by shifting bits
@@ -95,7 +95,7 @@ public:
   // conversion from T (constructor):
   volatile_padded(const T& val):ui(val) {}
   // conversion from T (assignment):
-  volatile_padded<T>& operator= (const T& val) {ui = val; return *this;}
+  volatile_padded& operator= (const T& val) {ui = val; return *this;}
   // conversion to T (type-cast operator)
   operator T() {return T(ui);}
 }__attribute__(( aligned(CACHE_LINE_SIZE) ));
@@ -140,7 +140,7 @@ public:
 	T* operator ->(){return this->ptr();}
 
 	// conversion from T (constructor):
-	cptr_local(const T*& val) {init(val,0);}
+	cptr_local (const T*& val) {init(val,0);}
 	// conversion to T (type-cast operator)
 	operator T*() {return this->ptr();}
 

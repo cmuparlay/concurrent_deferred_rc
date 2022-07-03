@@ -34,7 +34,7 @@ limitations under the License.
 #include "RetiredMonitorable.hpp"
 
 #include <cdrc/marked_arc_ptr.h>
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 using cdrc::marked_arc_ptr;
 using cdrc::marked_rc_ptr;
@@ -424,7 +424,7 @@ optional<V> NatarajanTreeRC<K,V>::get(K key, int tid){
 }
 
 template <class K, class V>
-optional<V> NatarajanTreeRC<K,V>::put(K key, V val, int tid){ return {}; }
+optional<V> NatarajanTreeRC<K,V>::put(K, V, int){ return {}; }
 
 template <class K, class V>
 bool NatarajanTreeRC<K,V>::insert(K key, V val, int tid){
@@ -567,7 +567,7 @@ optional<V> NatarajanTreeRC<K,V>::remove(K key, int tid){
 }
 
 template <class K, class V>
-optional<V> NatarajanTreeRC<K,V>::replace(K key, V val, int tid){ return {}; }
+optional<V> NatarajanTreeRC<K,V>::replace(K, V, int){ return {}; }
 
 template <class K, class V>
 std::map<K, V> NatarajanTreeRC<K,V>::rangeQuery(K key1, K key2, int& len, int tid){

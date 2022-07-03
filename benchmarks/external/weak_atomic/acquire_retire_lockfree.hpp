@@ -2,14 +2,14 @@
 #ifndef AR_LOCKFREE_H
 #define AR_LOCKFREE_H
 
-#include <algorithm>
-#include <atomic>
 #include <iostream>
-#include <optional>
-#include <unordered_set>
 #include <vector>
+#include <unordered_set>
+#include <atomic>
+#include <algorithm>    // std::remove_if
+#include <optional>
 
-#include <cdrc/internal/utils.hpp>
+#include <cdrc/internal/utils.h>
 
 /* acquire-retire should only be used on plain old data types
    that fit into 8 btyes (while there is 16 btye CAS, there's no 16 byte read).
@@ -64,7 +64,7 @@ struct AcquireRetireLockfreeBase {
     }
 
     std::optional<T> eject() {
-      if(retired.size() == AcquireRetireLockfreeBase::RECLAIM_DELAY*utils::num_threads())
+      if(retired.size() == AcquireRetireLockfreeBase::RECLAIM_DELAY*cdrc::utils::num_threads())
       {
         std::vector<T> tmp = eject_all();
         free.insert(free.end(), tmp.begin(), tmp.end());
@@ -82,7 +82,7 @@ struct AcquireRetireLockfreeBase {
       // if constexpr (Membarrier) syscall(__NR_membarrier, MEMBARRIER_CMD_SHARED, 0);
       // else std::atomic_thread_fence(std::memory_order_seq_cst);
       // std::atomic_thread_fence(std::memory_order_seq_cst);
-      std::unordered_multiset<T, utils::CustomHash<T>> held;
+      std::unordered_multiset<T, cdrc::utils::CustomHash<T>> held;
       std::vector<T> ejected;
       for (auto &x : parent->slots) {
         T reserved = x.announce.load(std::memory_order_seq_cst); // this read does not need to be atomic
@@ -108,12 +108,12 @@ struct AcquireRetireLockfreeBase {
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 
     void eject_and_destruct() {
-      if(retired.size() == AcquireRetireLockfreeBase::RECLAIM_DELAY*utils::num_threads())
+      if(retired.size() == AcquireRetireLockfreeBase::RECLAIM_DELAY*cdrc::utils::num_threads())
       {
         // if constexpr (Membarrier) syscall(__NR_membarrier, MEMBARRIER_CMD_SHARED, 0);
         // else std::atomic_thread_fence(std::memory_order_seq_cst);
         // std::atomic_thread_fence(std::memory_order_seq_cst);
-        std::unordered_multiset<T, utils::CustomHash<T>> held;
+        std::unordered_multiset<T, cdrc::utils::CustomHash<T>> held;
         for (auto &x : parent->slots) {
           T reserved = x.announce.load(std::memory_order_seq_cst); // this read does not need to be atomic
           if (reserved != empty) 
@@ -164,12 +164,6 @@ struct AcquireRetireLockfreeBase {
 
 #pragma GCC diagnostic pop
 
-  // slot_t* register_ar() {
-  //   int i = num_slots.fetch_add(1);
-  //   if (i > slots.size()) abort();
-  //   return &slots[i];
-  // }
-    
 };
 
 template <typename T, typename D = T>

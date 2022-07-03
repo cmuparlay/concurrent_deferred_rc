@@ -30,7 +30,7 @@ limitations under the License.
 #include <math.h>
 #include <assert.h>
 #include <malloc.h>
-#include <sys/time.h>	
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <hwloc.h>
 
@@ -155,7 +155,7 @@ public:
 	virtual void cleanup(GlobalTestConfig* gtc)=0;
 
 	// called by all threads in parallel
-	virtual void parInit(GlobalTestConfig* gtc, LocalTestConfig* ltc){}
+	virtual void parInit(GlobalTestConfig*, LocalTestConfig*){}
 	// runs the test
 	// returns number of operations completed by that thread
 	virtual int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc)=0;

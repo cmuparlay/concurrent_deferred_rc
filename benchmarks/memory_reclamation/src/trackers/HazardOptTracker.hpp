@@ -44,13 +44,14 @@ class HazardOptTracker: public BaseTracker<T>{
 private:
 	int task_num;
 	int slotsPerThread;
+	int actualSlotsPerThread;
 	int freq;
 	bool collect;
 
 	MemoryTracker<T>* mt;
 	RAllocator* mem;
 
-	paddedAtomic<T*>* slots;
+	std::atomic<T*>* slots;
 	padded<int>* cntrs;
 	padded<std::list<T*>>* retired; // TODO: use different structure to prevent malloc locking....
 
@@ -58,7 +59,7 @@ private:
   template<typename F>
   void scan_slots(F&& f) {
 		for (int i = 0; i<task_num*slotsPerThread; i++){
-			T* ann = slots[i].ui.load(std::memory_order_seq_cst);
+			T* ann = slots[i].load(std::memory_order_seq_cst);
 			if(ann != nullptr) f(ann);
 		}
   }
@@ -88,7 +89,7 @@ public:
       return;
     #endif
 		for (int i = 0; i<task_num*slotsPerThread; i++){
-			slots[i].ui.store(nullptr);
+			slots[i].store(nullptr);
 		}
 		for (int i = 0; i<task_num; i++){
 			empty(i, false);
@@ -100,9 +101,10 @@ public:
 	HazardOptTracker(MemoryTracker<T>* mt, int task_num, int slotsPerThread, int emptyFreq, bool collect): BaseTracker<T>(task_num), mt(mt){
 		this->task_num = task_num;
 		this->slotsPerThread = slotsPerThread;
+		this->actualSlotsPerThread = std::max(16, slotsPerThread); // for padding
 		this->freq = emptyFreq;
-		slots = new paddedAtomic<T*>[task_num*slotsPerThread];
-		for (int i = 0; i<task_num*slotsPerThread; i++){
+		slots = new std::atomic<T*>[task_num*actualSlotsPerThread];
+		for (int i = 0; i<task_num*actualSlotsPerThread; i++){
 			slots[i]=NULL;
 		}
 		retired = new padded<std::list<T*>>[task_num];
@@ -117,9 +119,9 @@ public:
 		HazardOptTracker(task_num, slotsPerThread, emptyFreq, true){}
 
 	void copy(int src_idx, int dst_idx, int tid) {
-		int src = tid*slotsPerThread+src_idx;
-		int dst = tid*slotsPerThread+dst_idx;
-		slots[dst].ui.store(slots[src].ui, std::memory_order_release);
+		int src = tid*actualSlotsPerThread+src_idx;
+		int dst = tid*actualSlotsPerThread+dst_idx;
+		slots[dst].store(slots[src], std::memory_order_release);
 	}
 
 	T* read(std::atomic<T*>& obj, int idx, int tid, T* node){
@@ -128,6 +130,7 @@ public:
 		while(true){
 			ret = obj.load(std::memory_order_acquire);
 			realptr = (T*)((size_t)ret & 0xfffffffffffffffc);
+			__builtin_prefetch((const void*)(realptr),0,0);
 			if(realptr == nullptr) {
 				clearSlot(idx, tid);
 				return ret;
@@ -140,17 +143,17 @@ public:
 	}
 
 	void reserve_slot(T* ptr, int slot, int tid){
-		slots[tid*slotsPerThread+slot] = ptr;
+		slots[tid*actualSlotsPerThread+slot].exchange(ptr);
 	}
 	void reserve_slot(T* ptr, int slot, int tid, T* node){
-		slots[tid*slotsPerThread+slot] = ptr;
+		slots[tid*actualSlotsPerThread+slot].exchange(ptr);
 	}
 	void clearSlot(int slot, int tid){
-		slots[tid*slotsPerThread+slot].ui.store(NULL, std::memory_order_release);
+		slots[tid*actualSlotsPerThread+slot].store(NULL, std::memory_order_release);
 	}
 	void clearAll(int tid){
 		for(int i = 0; i<slotsPerThread; i++){
-			slots[tid*slotsPerThread+i].ui.store(NULL, std::memory_order_release);
+			slots[tid*actualSlotsPerThread+i].store(NULL, std::memory_order_release);
 		}
 	}
 	void clear_all(int tid){

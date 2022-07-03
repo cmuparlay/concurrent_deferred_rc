@@ -60,9 +60,9 @@ limitations under the License.
 #include "dcas.hpp"
 
 union word_pair_t {
+  word_pair_t() : full(0) {}
 	std::atomic<uint64_t> pair[2];
 	std::atomic<__uint128_t> full;
-    word_pair_t() {}
 };
 
 union value_pair_t {

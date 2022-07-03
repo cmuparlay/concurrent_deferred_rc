@@ -255,8 +255,8 @@ void ObjRetireTest<T>::init(GlobalTestConfig* gtc){
 
 	int i = 0;
 
-	if(prefill > 1000) {
-		std::atomic<int> size = 0;
+	if(prefill > 1000000) {
+		std::atomic<int> size(0);
 		int processor_count = std::min(gtc->task_num, (int) std::thread::hardware_concurrency());
 		// #ifdef UTILS_H
 		// 	processor_count = std::min(processor_count, MAX_THREADS-1);
@@ -264,7 +264,7 @@ void ObjRetireTest<T>::init(GlobalTestConfig* gtc){
 		// #endif
 		std::cout << "initializing in parallel with " << processor_count << " threads" << std::endl;
 		std::vector<std::thread> threads;
-		std::atomic<long long int> numKeys = 0;
+		std::atomic<long long int> numKeys(0);
     for (int p = 0; p < processor_count; p++) {
       threads.emplace_back([this, &size, &numKeys, p]() {
 				std::mt19937_64 gen(p);
@@ -363,7 +363,8 @@ int ObjRetireTest<T>::ObjRetireTest::execute(GlobalTestConfig* gtc, LocalTestCon
 					m->remove(k,tid);
 			} else {
 				int len = 0;
-				dynamic_cast<ROrderedMap<T,T>*>(m)->rangeQuery(0, range, len, tid);
+				// dynamic_cast<ROrderedMap<T,T>*>(m)->rangeQuery(0, range, len, tid);
+				dynamic_cast<ROrderedMap<T,T>*>(m)->rangeQuery(k, k+64, len, tid);
 			}
 
 			ops++;	

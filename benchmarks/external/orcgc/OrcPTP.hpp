@@ -124,7 +124,7 @@ public:
             for (int ihp = 0; ihp < lmaxHPs; ihp++) {
                 orc_base* obj = handovers[it][ihp].load();
                 if (obj == nullptr) continue;
-                uint64_t lorc = obj->_orc.load();
+                [[maybe_unused]] uint64_t lorc = obj->_orc.load();
                 handovers[it][ihp].store(nullptr, std::memory_order_relaxed);
                 retire(obj,tid);
 
@@ -149,7 +149,7 @@ public:
             tl[tid].usedHaz[idx]++;
             // Increase the current maximum to cover the new hp index
             uint64_t curMax = maxHPs.load(std::memory_order_relaxed);
-            while (curMax <= idx) {
+            while (curMax <= static_cast<size_t>(idx)) {
                 maxHPs.compare_exchange_strong(curMax, idx+1);
             }
             return idx;
@@ -267,11 +267,11 @@ public:
                 (*(ptr->_deleter))(ptr);  // This calls "delete obj" with the appropriate type information
                 break;
             }
-            if(rlist.size()==i) break;
+            if(rlist.size()==static_cast<size_t>(i)) break;
             ptr = rlist[i];
             i++;
         }
-        assert(i== rlist.size());
+        //assert(i== rlist.size());
         rlist.clear();
         tl[tid].retireStarted = false;
     }
@@ -765,7 +765,7 @@ public:
     }
 
     // Progress: Lock-Free
-    inline orc_unsafe_internal_ptr<T> load(std::memory_order order = std::memory_order_seq_cst) {
+    inline orc_unsafe_internal_ptr<T> load([[maybe_unused]] std::memory_order order = std::memory_order_seq_cst) {
         const int tid = ThreadRegistry::getTID();
         auto ptr = static_cast<T>(g_ptp.get_protected(0, this, tid));
         // If it's coming from an orc_atomic<T>::load() then it must be linked=true and temp=true

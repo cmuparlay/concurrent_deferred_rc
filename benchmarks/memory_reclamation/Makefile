@@ -59,7 +59,7 @@
 # -------------------------
 
 # list of directories which contain headers (include directories)
-IDIRS:=./src ./ext/parharness ./src/trackers ../../include
+IDIRS:=./src ./ext/parharness ./src/trackers ../../include ../../include/cdrc
 # directory to put build artifacts (e.g. .o, .d files)
 ODIR:=./obj
 # list of directories which contain linked in libraries
@@ -80,7 +80,7 @@ BINDIR :=./bin
 # C compiler
 CC:=gcc
 # C++ compiler
-CXX:=g++-9
+CXX:=g++
 # linker
 LD:= $(CXX)
 
@@ -129,10 +129,10 @@ WARNING_FLAGS:=-ftrapv -Wreturn-type -W -Wall \
 
 # Default build flags.   -fsanitize=address,undefined
 CFLAGS:=-pthread -g -gdwarf-2 -fpic $(WARNING_FLAGS)
-CXXFLAGS:= -pthread -std=gnu++2a -mcx16 -g -fpic -fuse-ld=gold -fconcepts $(WARNING_FLAGS)
+CXXFLAGS:= -pthread -std=gnu++2a -mcx16 -g -fpic -fconcepts $(WARNING_FLAGS)
 
 # linker flags
-LDFLAGS := -fuse-ld=gold $(WARNING_FLAGS)
+LDFLAGS := $(WARNING_FLAGS)
 
 
 # -------------------------

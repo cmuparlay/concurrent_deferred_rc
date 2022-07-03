@@ -7,7 +7,7 @@
 # -------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.5)
-project(CONCURRENT_DEFERRED_RC VERSION 1.0
+project(CONCURRENT_DEFERRED_RC VERSION 2.0
         DESCRIPTION "Atomic reference counting for C++"
         LANGUAGES CXX)
 
@@ -30,6 +30,10 @@ message(STATUS "CMAKE_INSTALL_PREFIX:           ${CMAKE_INSTALL_PREFIX}" )
 # Make sure -fno-omit-frame-pointer is set for profiling
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(LINUX TRUE)
+endif()
+
 # -------------------------------------------------------------------
 #                       Library definition
 
@@ -42,16 +46,14 @@ target_compile_features(concurrent_deferred_rc INTERFACE cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(concurrent_deferred_rc INTERFACE Threads::Threads)
 
-# Link boost::program_options
-find_package(Boost 1.40 COMPONENTS program_options REQUIRED)
-target_link_libraries(concurrent_deferred_rc INTERFACE Boost::program_options)
+if(LINUX)
+  # Enable 16 byte CAS
+  target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
+  target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)
 
-# Enable 16 byte CAS
-target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
-target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)
-
-# The following might not be needed for 16-byte atomics
-target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
+  # The following might not be needed for 16-byte atomics
+  target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
+endif()
 
 # Configure support for just::threads, if available
 # Defines the flag JUST_THREADS_AVAILABLE in cmake,
@@ -104,9 +106,14 @@ add_subdirectory(tests)
 # -------------------------------------------------------------------
 #                           Benchmarks
 
-add_subdirectory(benchmarks)
+# The memory reclamation benchmark suite only works on Linux
+if(LINUX)
+  add_subdirectory(benchmarks)
+endif()
 
 # -------------------------------------------------------------------
 #                           Figures
 
-add_subdirectory(results)
+if(LINUX)
+  add_subdirectory(results)
+endif()

@@ -2,31 +2,33 @@
 #ifndef CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 #define CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H
 
-#include <concepts>
+#include <optional>
 #include <utility>
 
 #include <cdrc/atomic_rc_ptr.h>
 #include <cdrc/rc_ptr.h>
 
-#include "../benchmarks/common.hpp"
+#include "../common.hpp"
 
 template<typename T>
 concept SharedPointer = requires(T a) {
-  requires std::copyable<T>;     // A shared pointer is copyable and movable
-  *a;                            // A shared pointer can be dereferenced
-  a.get();                       // We can access the raw pointer
-  a.operator->();                // We can access members of the underlying object
-  requires std::is_pointer_v<decltype(a.get())>;
+  T(a);                                                         // A shared pointer is copyable
+  T(std::declval<T&&>());                                       // A shared pointer is movable
+  *a;                                                           // A shared pointer can be dereferenced
+  a.get();                                                      // We can access the raw pointer
+  a.operator->();                                               // We can access members of the underlying object
+  requires std::is_pointer_v<decltype(a.get())>;                // The raw pointer is in fact a pointer
   requires std::is_pointer_v<decltype(a.operator->())>;
 };
 
 // An atomic shared pointer must at minimum support load, store, and compare exchange weak
 template<typename T>
 concept AtomicSharedPointer = requires(T a) {
-  a.load() -> SharedPointer;                                        // We can load from an atomic shared pointer
+  a.load();                                                         // We can load from an atomic shared pointer
   a.store(std::declval<decltype(a.load())>());                      // We can store to an atomic shared pointer
   a.compare_exchange_weak(std::declval<decltype(a.load())&>(),      // We can CAS on an atomic shared pointer
                           std::declval<decltype(a.load())>());
+   SharedPointer<decltype(a.load())>;                               // The loaded object is a shared pointer
 };
 
 // Detect atomic storage types that support a get_snapshot
@@ -34,17 +36,12 @@ concept AtomicSharedPointer = requires(T a) {
 // A snapshot should be dereferenceable to the same type
 // as the shared pointer
 template<typename T>
-concept Snapshotable = AtomicSharedPointer<T> && requires(T a) {
-  a.get_snapshot();
-  std::same_as<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
+concept Snapshotable = requires(T a) {
+    requires AtomicSharedPointer<T>;
+    a.get_snapshot();
+  std::is_same_v<decltype(*(a.get_snapshot())), decltype(*(a.load()))>;
 };
 
-// Detect whether the given atomic storage supports swapping
-// with a given value. This helps to implement faster push
-template<typename T>
-concept Swappable = AtomicSharedPointer<T> && requires(T a) {
-  a.swap(std::declval<T>().load());
-};
 
 // A concurrent stack that can use any given atomic shared pointer type
 //
@@ -59,23 +56,14 @@ concept Swappable = AtomicSharedPointer<T> && requires(T a) {
 //  - get_snapshot(): Return a snapshot to the object managed by the currently stored
 //      shared pointer. A snapshot object should guarantee that the underlying object
 //      is safe from destruction and reclamation as long as it is alive
-//  - swap(other): Swap the contents of the atomic shared pointer with the given
-//      shared pointer. The operation must be atomic from the perspective of the
-//      atomic shared pointer, but need not be with respect to the non-atomic
-//      other.
 //
 template<typename T, template<typename> typename AtomicSPType, template<typename> typename SPType>
-//requires AtomicSharedPointer<AtomicSPType<T>>
 class alignas(64) atomic_stack {
 
   struct Node;
   using atomic_sp_t = AtomicSPType<Node>;
   using load_t = std::remove_cvref_t<decltype(std::declval<atomic_sp_t>().load())>;
   using sp_t = SPType<Node>;
-
-  // Should use the explicit partial specialization for OrcGC since it
-  // has different signatures and does not work with this implementation
-  static_assert(!std::is_same_v<AtomicSPType<Node>, OrcAtomicRcPtr<Node>>);
 
   // Load should return the shared_ptr-like type
   static_assert(std::is_same_v<load_t, sp_t>);
@@ -84,7 +72,7 @@ class alignas(64) atomic_stack {
     T t;
     sp_t next;
     Node() = default;
-    explicit Node(T t_) : t(std::move(t_)) { }
+    Node(T t_) : t(std::move(t_)) { }
   };
 
   atomic_sp_t head;
@@ -99,8 +87,8 @@ class alignas(64) atomic_stack {
  public:
   atomic_stack() = default;
 
-  atomic_stack(atomic_stack&) = delete;
-  void operator=(atomic_stack) = delete;
+  atomic_stack(const atomic_stack&) = delete;
+  atomic_stack& operator=(const atomic_stack&) = delete;
 
   // Avoid exploding the call stack when destructing
   ~atomic_stack() {
@@ -154,7 +142,7 @@ class alignas(64) atomic_stack {
   std::optional<T> pop_front() {
     auto ss = snapshot_or_load();
     while (ss && !head.compare_exchange_weak(ss, ss->next)) {}
-    if (ss) return {ss->t};
+    if (ss) { return {ss->t}; }
     else return {};
   }
 
@@ -176,7 +164,6 @@ class alignas(64) atomic_stack {
   }
 };
 
-
 // Stack specialization for OrcGC, since it unfortunately does not adhere to the C++
 // standard signatures for atomic shared pointers, so everything has to be written
 // slightly differently
@@ -191,18 +178,16 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
     T t;
     atomic_sp_t next;
     Node() = default;
-    explicit Node(T t_) : t(std::move(t_)) { }
+    Node(T t_) : t(std::move(t_)) { }
   };
 
   atomic_sp_t head;
 
-
+  atomic_stack(atomic_stack&) = delete;
+  void operator=(atomic_stack) = delete;
 
  public:
   atomic_stack() = default;
-
-  atomic_stack(atomic_stack&) = delete;
-  void operator=(atomic_stack) = delete;
 
   // Avoid exploding the call stack when destructing
   ~atomic_stack() {
@@ -233,7 +218,7 @@ class alignas(64) atomic_stack<T, OrcAtomicRcPtr, OrcRcPtr> {
   }
 
   void push_front(T t) {
-    sp_t new_node = make_shared<Node, OrcRcPtr>();
+    sp_t new_node = orcgc_ptp::make_orc<Node>();
     sp_t next_node = head.load();
     new_node->t = t;
     new_node->next = next_node;

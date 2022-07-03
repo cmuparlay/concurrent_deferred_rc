@@ -4,20 +4,16 @@
 
 #include <atomic>
 
-#include <cdrc/internal/acquire_retire.h>
-
 namespace internal {
 
-// An instance of an object of type T prepended with an atomic reference count.
-// Use of this type for allocating shared objects ensures that the ref count can
-// be found from a pointer to the object, and that the two are both corectly aligned.
+// An instance of an object of type T with an atomic reference count.
 template<typename T>
 struct herlihy_counted_object {
   typename std::aligned_storage<sizeof(T), alignof(T)>::type object;
   std::atomic<uint64_t> ref_cnt;
 
   template<typename... Args>
-  herlihy_counted_object(Args&&... args) : ref_cnt(1) {
+  explicit herlihy_counted_object(Args&&... args) : ref_cnt(1) {
     new (std::addressof(object)) T(std::forward<Args>(args)...);
   }
   ~herlihy_counted_object() = default;
@@ -89,7 +85,7 @@ class herlihy_rc_ptr {
   // Create a new rc_ptr containing an object of type T constructed from (args...).
   template<typename... Args>
   static herlihy_rc_ptr<T, opt> make_shared(Args&&... args) {
-    internal::herlihy_counted_object<T>* ptr = new internal::herlihy_counted_object<T>(std::forward<Args>(args)...);
+    auto ptr = new internal::herlihy_counted_object<T>(std::forward<Args>(args)...);
     arc_ptr_t::increment_allocations();
     return herlihy_rc_ptr<T, opt>(ptr, AddRef::no);
   }

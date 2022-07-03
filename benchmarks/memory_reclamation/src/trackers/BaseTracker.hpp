@@ -40,7 +40,7 @@ public:
 		}
 	}
 
-	~BaseTracker() {
+	virtual ~BaseTracker() {
 		#ifdef NO_DESTRUCT
       return;
     #endif
@@ -82,7 +82,8 @@ public:
 	virtual void end_op(int tid){}
 
 	virtual T* read(std::atomic<T*>& obj, int idx, int tid, T* node){
-		return obj.load(std::memory_order_acquire);
+		T* ptr = obj.load(std::memory_order_acquire);
+		return ptr;
 	}
 	
 	virtual void transfer(int src_idx, int dst_idx, int tid){}

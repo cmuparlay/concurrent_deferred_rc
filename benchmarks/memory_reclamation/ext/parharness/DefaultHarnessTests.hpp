@@ -47,8 +47,8 @@ class NothingTest : public Test{
 public:
 	Rideable* r;
 	void init(GlobalTestConfig* gtc){r = gtc->allocRideable();}
-	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){return 0;}
-	void cleanup(GlobalTestConfig* gtc){}
+	int execute(GlobalTestConfig*, LocalTestConfig*){return 0;}
+	void cleanup(GlobalTestConfig*){}
 };
 
 
@@ -58,7 +58,7 @@ public:
 	unsigned long int fai_cntr;
 	void init(GlobalTestConfig* gtc);
 	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc);
-	void cleanup(GlobalTestConfig* gtc){}
+	void cleanup(GlobalTestConfig*){}
 };
 
 
@@ -67,7 +67,7 @@ public:
 	RContainer* q;
 	void init(GlobalTestConfig* gtc);
 	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc);
-	void cleanup(GlobalTestConfig* gtc){}
+	void cleanup(GlobalTestConfig*){}
 };
 
 class AllocatorChurnTest :  public Test{
@@ -146,7 +146,7 @@ public:
 	void barrier();
 	void init(GlobalTestConfig* gtc);
 	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc);
-	void cleanup(GlobalTestConfig* gtc){}
+	void cleanup(GlobalTestConfig*){}
 };
 
 
@@ -156,7 +156,7 @@ public:
 	UIDGenerator* ug;
 	void init(GlobalTestConfig* gtc);
 	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc);
-	void cleanup(GlobalTestConfig* gtc){}
+	void cleanup(GlobalTestConfig*){}
 };
 
 class MapVerificationTest : public Test{
@@ -175,11 +175,11 @@ class TopologyReport : public Test{
 public:
 	hwloc_topology_t top;
 	unsigned int topodepth;
-	void init(GlobalTestConfig* gtc){
+	void init(GlobalTestConfig*){
 		hwloc_topology_init(&top);
 		hwloc_topology_load(top);
 		topodepth = hwloc_topology_get_depth(top);
-		char buf[128];
+		//char buf[128];
 		puts("Machine Topology");
 		print_children(top, hwloc_get_root_obj(top), 0);
 	}
@@ -206,7 +206,7 @@ public:
 	}
 	
 	
-	int execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){
+	int execute(GlobalTestConfig*, LocalTestConfig* ltc){
 		char buf[128];
 		hwloc_cpuset_t cpuset = hwloc_bitmap_alloc();
 		hwloc_bitmap_zero(cpuset);
@@ -238,7 +238,7 @@ public:
 		hwloc_bitmap_free(cpuset);
 		return 0;
 	}
-	void cleanup(GlobalTestConfig* gtc){
+	void cleanup(GlobalTestConfig*){
 		hwloc_topology_destroy(top);
 	}
 };

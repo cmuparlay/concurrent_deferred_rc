@@ -36,6 +36,7 @@ class MemoryTracker;
 template<class T> 
 class RangeTrackerNew:public BaseTracker<T>{
 private:
+	MemoryTracker<T>* mt;
 	int task_num;
 	int freq;
 	int epochFreq;
@@ -51,7 +52,6 @@ public:
 	};
 	
 private:
-	MemoryTracker<T>* mt;
 	paddedAtomic<uint64_t>* upper_reservs;
 	paddedAtomic<uint64_t>* lower_reservs;
 	padded<uint64_t>* retire_counters;
@@ -65,7 +65,7 @@ public:
 		#ifdef NO_DESTRUCT
       return;
     #endif
-		for(int i = 0; i < task_num; i++) clear(i);
+		for(int i = 0; i < task_num; i++) clear_all(i);
 		for(int i = 0; i < task_num; i++) empty(i, false);
 		delete[] retired;
 		delete[] upper_reservs;
@@ -88,16 +88,17 @@ public:
 	}
 	RangeTrackerNew(int task_num, int epochFreq, int emptyFreq) : RangeTrackerNew(task_num,epochFreq,emptyFreq,true){}
 
-	void __attribute__ ((deprecated)) reserve(uint64_t e, int tid){
-		return reserve(tid);
-	}
 	uint64_t get_epoch(){
 		return epoch.load(std::memory_order_acquire);
 	}
 
+	int capped_num_threads() {
+		return std::min(task_num, (int) std::thread::hardware_concurrency());
+	}
+
 	void* alloc(int tid){
 		alloc_counters[tid] = alloc_counters[tid]+1;
-		if(alloc_counters[tid]%(epochFreq*task_num)==0){
+		if(alloc_counters[tid]%(epochFreq*capped_num_threads())==0){
 			epoch.fetch_add(1,std::memory_order_acq_rel);
 		}
 		char* block = (char*) malloc(sizeof(uint64_t) + sizeof(T));
@@ -123,12 +124,13 @@ public:
         uint64_t prev_epoch = upper_reservs[tid].ui.load(std::memory_order_acquire);
 		while(true){
 			T* ptr = obj.load(std::memory_order_acquire);
+			// __builtin_prefetch((const void*)(ptr),0,0);
 			uint64_t curr_epoch = get_epoch();
 			if (curr_epoch == prev_epoch){
 				return ptr;
 			} else {
 				// upper_reservs[tid].ui.store(curr_epoch, std::memory_order_release);
-				upper_reservs[tid].ui.store(curr_epoch, std::memory_order_seq_cst);
+				upper_reservs[tid].ui.exchange(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
@@ -142,7 +144,7 @@ public:
 				return;
 			} else {
 				// upper_reservs[tid].ui.store(curr_epoch, std::memory_order_release);
-				upper_reservs[tid].ui.store(curr_epoch, std::memory_order_seq_cst);
+				upper_reservs[tid].ui.exchange(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
@@ -150,8 +152,8 @@ public:
 
 	void start_op(int tid){
 		uint64_t e = epoch.load(std::memory_order_acquire);
-		lower_reservs[tid].ui.store(e,std::memory_order_seq_cst);
-		upper_reservs[tid].ui.store(e,std::memory_order_seq_cst);
+		lower_reservs[tid].ui.exchange(e,std::memory_order_seq_cst);
+		upper_reservs[tid].ui.exchange(e,std::memory_order_seq_cst);
 		// lower_reservs[tid].ui.store(e,std::memory_order_release);
 		// upper_reservs[tid].ui.store(e,std::memory_order_release);
 	}
@@ -159,12 +161,7 @@ public:
 		upper_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
 		lower_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
 	}
-	void reserve(int tid){
-		start_op(tid);
-	}
-	void clear(int tid){
-		end_op(tid);
-	}
+	void clear_all(int tid) {}
 
 	
 	inline void incrementEpoch(){
@@ -181,7 +178,8 @@ public:
 		uint64_t retire_epoch = epoch.load(std::memory_order_acquire);
 		myTrash->push_back(IntervalInfo(obj, birth_epoch, retire_epoch));
 		retire_counters[tid]=retire_counters[tid]+1;
-		if(collect && retire_counters[tid]%freq==0){
+		auto threshold = std::max<int>(30, freq * task_num);  // Always wait at least 30 ejects
+		if(collect && retire_counters[tid]%threshold==0){
 			empty(tid);
 		}
 	}

@@ -33,11 +33,7 @@ limitations under the License.
 #include <iostream>
 
 #include <cdrc/marked_arc_ptr.h>
-#include <cdrc/internal/utils.hpp>
-
-using cdrc::marked_arc_ptr;
-using cdrc::marked_rc_ptr;
-using cdrc::marked_snapshot_ptr;
+#include <cdrc/internal/utils.h>
 
 #ifdef NGC
 #define COLLECT false
@@ -45,14 +41,18 @@ using cdrc::marked_snapshot_ptr;
 #define COLLECT true
 #endif
 
-template <class K, class V>
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class SortedUnorderedMapRCSS : public RUnorderedMap<K,V>, public RetiredMonitorable{
   struct Node;
+
+  using marked_arc_ptr = cdrc::marked_arc_ptr<Node, memory_manager<Node>>;
+  using marked_rc_ptr = cdrc::marked_rc_ptr<Node, memory_manager<Node>>;
+  using marked_snapshot_ptr = cdrc::marked_snapshot_ptr<Node, memory_manager<Node>>;
 
   struct Node{
     K key;
     V val;
-    marked_arc_ptr<Node> next;
+    marked_arc_ptr next;
     Node(){};
     Node(K k, V v):key(k),val(v),next(){};
     inline bool deletable() {return true;}
@@ -61,14 +61,14 @@ private:
   std::hash<K> hash_fn;
   padded<uint64_t>* counter;
   const int idxSize;
-  padded<marked_arc_ptr<Node>>* bucket=new padded<marked_arc_ptr<Node>>[idxSize]{};
-  bool findNode(marked_snapshot_ptr<Node> &prev, marked_snapshot_ptr<Node> &cur, marked_snapshot_ptr<Node> &nxt, K key, int tid);
+  padded<marked_arc_ptr>* bucket=new padded<marked_arc_ptr>[idxSize]{};
+  bool findNode(marked_snapshot_ptr &prev, marked_snapshot_ptr &cur, marked_snapshot_ptr &nxt, K key, int tid);
 
-  void reportAlloc(int tid) {
+  void reportAlloc([[maybe_unused]] int tid) {
     // counter[tid].ui++;
     // if(counter[tid].ui == 4000) {
     //   counter[tid].ui = 0;
-    //   collect_retired_size(marked_arc_ptr<Node>::currently_allocated(), tid);
+    //   collect_retired_size(marked_arc_ptr::currently_allocated(), tid);
     // }
   }
 
@@ -90,11 +90,11 @@ public:
   };
 
   int64_t get_allocated() {
-    return marked_arc_ptr<Node>::currently_allocated();
+    return marked_arc_ptr::currently_allocated();
   }
 
-  marked_rc_ptr<Node> mkNode(K k, V v, int tid){
-    return marked_rc_ptr<Node>::make_shared(k, v);
+  marked_rc_ptr mkNode(K k, V v, int){
+    return marked_rc_ptr::make_shared(k, v);
   }
 
   // debugging purposes, only works in quiescent state
@@ -105,7 +105,7 @@ public:
     return sum;
   }
 
-  uint64_t sizeHelper(marked_rc_ptr<Node> node) {
+  uint64_t sizeHelper(marked_rc_ptr node) {
     assert(node.get_mark() == 0);
     if(node.get() == nullptr) return 0;
     return 1 + sizeHelper(node->next.load());
@@ -118,7 +118,7 @@ public:
     return sum;
   }
 
-  uint64_t keySumHelper(marked_rc_ptr<Node> node) {
+  uint64_t keySumHelper(marked_rc_ptr node) {
     assert(node.get_mark() == 0);
     if(node.get() == nullptr) return 0;
     return node->key + keySumHelper(node->next.load());
@@ -131,21 +131,30 @@ public:
   optional<V> replace(K key, V val, int tid);
 };
 
-template <class K, class V> 
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
 class SortedUnorderedMapRCSSFactory : public RideableFactory{
 public: 
-  SortedUnorderedMapRCSS<K,V>* build(GlobalTestConfig* gtc){
-    return new SortedUnorderedMapRCSS<K,V>(gtc,atoi((gtc->getEnv("prefill")).c_str()));
+  SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){
+    return new SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>(gtc,atoi((gtc->getEnv("prefill")).c_str()));
+  }
+};
+
+template <class K, class V, template<typename> typename memory_manager, typename guard_t = cdrc::empty_guard>
+class SortedUnorderedMapRCSSTestFactory : public RideableFactory{
+ public:
+  SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>* build(GlobalTestConfig* gtc){
+    return new SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>(gtc,10000);
   }
 };
 
 //-------Definition----------
-template <class K, class V> 
-optional<V> SortedUnorderedMapRCSS<K,V>::get(K key, int tid) {
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+optional<V> SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::get(K key, int tid) {
+  [[maybe_unused]] guard_t guard;
   reportAlloc(tid);
-  marked_snapshot_ptr<Node> prev;
-  marked_snapshot_ptr<Node> cur;
-  marked_snapshot_ptr<Node> nxt;
+  marked_snapshot_ptr prev;
+  marked_snapshot_ptr cur;
+  marked_snapshot_ptr nxt;
   optional<V> res={};
 
   if(findNode(prev,cur,nxt,key,tid)){
@@ -154,17 +163,18 @@ optional<V> SortedUnorderedMapRCSS<K,V>::get(K key, int tid) {
   return res;
 }
 
-template <class K, class V> 
-optional<V> SortedUnorderedMapRCSS<K,V>::put(K key, V val, int tid) { return {}; }
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+optional<V> SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::put(K, V, int) { return {}; }
 
-template <class K, class V> 
-bool SortedUnorderedMapRCSS<K,V>::insert(K key, V val, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+bool SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::insert(K key, V val, int tid){
+  [[maybe_unused]] guard_t guard;
   reportAlloc(tid);
   size_t idx=hash_fn(key)%idxSize;
-  marked_rc_ptr<Node> tmpNode;
-  marked_snapshot_ptr<Node> prev;
-  marked_snapshot_ptr<Node> cur;
-  marked_snapshot_ptr<Node> nxt;
+  marked_rc_ptr tmpNode;
+  marked_snapshot_ptr prev;
+  marked_snapshot_ptr cur;
+  marked_snapshot_ptr nxt;
   bool res=false;
   tmpNode = mkNode(key, val, tid);
 
@@ -176,7 +186,7 @@ bool SortedUnorderedMapRCSS<K,V>::insert(K key, V val, int tid){
     else{//does not exist, insert.
       // std::cout << "cur: " << cur.get() << std::endl;
       tmpNode->next.store_non_racy(cur);
-      marked_arc_ptr<Node>* addr = (prev ? &(prev->next) : &bucket[idx].ui);
+      marked_arc_ptr* addr = (prev ? &(prev->next) : &bucket[idx].ui);
       if(addr->compare_and_swap(cur,std::move(tmpNode))){
         res=true;
         break;
@@ -186,13 +196,14 @@ bool SortedUnorderedMapRCSS<K,V>::insert(K key, V val, int tid){
   return res;
 }
 
-template <class K, class V> 
-optional<V> SortedUnorderedMapRCSS<K,V>::remove(K key, int tid) {
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+optional<V> SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::remove(K key, int tid) {
+  [[maybe_unused]] guard_t guard;
   reportAlloc(tid);
   size_t idx=hash_fn(key)%idxSize;
-  marked_snapshot_ptr<Node> prev;
-  marked_snapshot_ptr<Node> cur;
-  marked_snapshot_ptr<Node> nxt;
+  marked_snapshot_ptr prev;
+  marked_snapshot_ptr cur;
+  marked_snapshot_ptr nxt;
   optional<V> res={};
 
   while(true){
@@ -203,7 +214,7 @@ optional<V> SortedUnorderedMapRCSS<K,V>::remove(K key, int tid) {
     res=cur->val;
     if(!cur->next.compare_and_set_mark(nxt, 1))
       continue;
-    marked_arc_ptr<Node>* addr = (prev ? &(prev->next) : &bucket[idx].ui);
+    marked_arc_ptr* addr = (prev ? &(prev->next) : &bucket[idx].ui);
     if(!addr->compare_and_swap(cur,nxt)) {
       findNode(prev,cur,nxt,key,tid);
     }
@@ -212,15 +223,15 @@ optional<V> SortedUnorderedMapRCSS<K,V>::remove(K key, int tid) {
   return res;
 }
 
-template <class K, class V> 
-optional<V> SortedUnorderedMapRCSS<K,V>::replace(K key, V val, int tid) { return {}; }
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+optional<V> SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::replace(K, V, int) { return {}; }
 
-template <class K, class V> 
-bool SortedUnorderedMapRCSS<K,V>::findNode(marked_snapshot_ptr<Node> &prev, marked_snapshot_ptr<Node> &cur, marked_snapshot_ptr<Node> &nxt, K key, int tid){
+template <class K, class V, template<typename> typename memory_manager, typename guard_t> 
+bool SortedUnorderedMapRCSS<K,V,memory_manager,guard_t>::findNode(marked_snapshot_ptr &prev, marked_snapshot_ptr &cur, marked_snapshot_ptr &nxt, K key, int){
   while(true){
     prev.clear();
     size_t idx=hash_fn(key)%idxSize;
-    bool cmark=false;
+    //bool cmark=false;
     cur= bucket[idx].ui.get_snapshot();
 
     while(true){//to lock old and cur
@@ -231,7 +242,7 @@ bool SortedUnorderedMapRCSS<K,V>::findNode(marked_snapshot_ptr<Node> &prev, mark
         break;
       nxt.set_mark(0);
       auto ckey=cur->key;
-      marked_arc_ptr<Node>* addr = (prev ? &(prev->next) : &bucket[idx].ui);
+      marked_arc_ptr* addr = (prev ? &(prev->next) : &bucket[idx].ui);
       if(!addr->contains(cur))
         break;//return findNode(prev,cur,nxt,key,tid);
       if(!cmark){
