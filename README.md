@@ -122,7 +122,7 @@ std::optional<T> pop_front() {
 }
 ```
 
-The guard is released automatically at the end of the enclosing scope. It is safe to hold multiple nested guards inside nested scopes. Guards should not be held for long periods of time, as they may delay memory reclamation and lead to the accumulation of more garbage. Ideally, the lifetime of a guard should denote the span of a single operation on the data structure.
+The guard is released automatically at the end of the enclosing scope. Note that snapshot pointers cannot outlive the guard that they were created during. It is safe to hold multiple nested guards inside nested scopes. Guards should not be held for long periods of time, as they may delay memory reclamation and lead to the accumulation of more garbage. Ideally, the lifetime of a guard should denote the span of a single operation on the data structure.
 
 
 ### Selecting an alternate backend
