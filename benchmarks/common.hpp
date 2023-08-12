@@ -5,17 +5,14 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <memory>
 
-#include <cdrc/rc_ptr.h>
-#include <cdrc/atomic_rc_ptr.h>
+#include <cdrc/internal/utils.hpp>
 
-#include "external/weak_atomic/weak_atomic.hpp"
-
-#include "external/herlihy/herlihy_arc_ptr.h"
 #include "external/herlihy/herlihy_arc_ptr_opt.h"
 #include "external/herlihy/herlihy_rc_ptr.h"
 
-#include "external/orcgc/OrcPTP.hpp"
+#include "/home/daniel/atomic_shared_ptr/include/parlay/atomic_shared_ptr_custom.hpp"
 
 #ifdef ARC_JUST_THREADS_AVAILABLE
 #include <experimental/atomic>
@@ -31,19 +28,7 @@
 
 // C++ standard library atomic support for shared ptrs
 template<typename T>
-struct StlAtomicSharedPtr {
-  StlAtomicSharedPtr() = default;
-  StlAtomicSharedPtr(const std::shared_ptr<T>& other) : sp(other) { }
-  std::shared_ptr<T> load() { return std::atomic_load(&sp); }
-  void store(std::shared_ptr<T> r) { std::atomic_store(&sp, std::move(r)); }
-  bool compare_exchange_strong(std::shared_ptr<T>& expected, const std::shared_ptr<T>& desired) {
-    return atomic_compare_exchange_strong(&sp, &expected, desired);
-  }
-  bool compare_exchange_weak(std::shared_ptr<T>& expected, const std::shared_ptr<T>& desired) {
-    return atomic_compare_exchange_weak(&sp, &expected, desired);
-  }
-  std::shared_ptr<T> sp;
-};
+using StlAtomicSharedPtr = std::atomic<std::shared_ptr<T>>;
 
 #ifdef ARC_JUST_THREADS_AVAILABLE
 // Just::threads atomic support for shared ptrs
@@ -57,49 +42,35 @@ template<typename T>
 using FollyAtomicStdSharedPtr = folly::atomic_shared_ptr<T>;
 #endif
 
-template<typename T>
-using WeakAtomicRcPtrLockfree = weak_atomic<cdrc::rc_ptr<T>, AcquireRetireLockfree>;
-
-template<typename T>
-using SnapshottingArcPtr = cdrc::atomic_rc_ptr<T>;
-
-template<typename T>
-using OurRcPtr = cdrc::rc_ptr<T>;
-
-template<typename T>
-using HerlihyRcPtr = herlihy_rc_ptr<T, false>;
-
+// Optimized Herlihy algorithm with custom shared ptr
 template<typename T>
 using HerlihyRcPtrOpt = herlihy_rc_ptr<T, true>;
 
+// My new atomic shared pointers
 template<typename T>
-using OrcAtomicRcPtr = orcgc_ptp::orc_atomic<T*>;
+using MyAtomicSharedPtr = parlay::atomic_shared_ptr<T>;
 
 template<typename T>
-using OrcRcPtr = orcgc_ptp::orc_ptr<T*>;
+using MySharedPtr = parlay::shared_ptr<T>;
 
-struct alignas(32) PaddedInt : orcgc_ptp::orc_base {
-  int x;
-  PaddedInt(int x) : x(x) {}
-  int getInt() { return x; }
-};
+
+
+using PaddedInt = utils::Padded<int>;
+
+static_assert(std::constructible_from<PaddedInt, int&>);
 
 template<template<typename> typename SPType>
 SPType<PaddedInt> make_shared_int(int val) {
-  if constexpr (std::is_same<SPType<PaddedInt>, std::shared_ptr<PaddedInt>>::value)
+  if constexpr (std::is_same_v<SPType<PaddedInt>, std::shared_ptr<PaddedInt>>)
     return std::make_shared<PaddedInt>(val);                                        // STL shared_ptr
 #ifdef ARC_JUST_THREADS_AVAILABLE
-  else if constexpr (std::is_same<SPType<PaddedInt>, std::experimental::shared_ptr<PaddedInt>>::value)
+  else if constexpr (std::is_same_v<SPType<PaddedInt>, std::experimental::shared_ptr<PaddedInt>>)
     return std::experimental::make_shared<PaddedInt>(val);                          // JustThreads shared_ptr
 #endif
-  else if constexpr (std::is_same<SPType<PaddedInt>, HerlihyRcPtr<PaddedInt>>::value)
-    return herlihy_rc_ptr<PaddedInt, false>::make_shared(val);                             // Herlihy's algorithm
-  else if constexpr (std::is_same<SPType<PaddedInt>, HerlihyRcPtrOpt<PaddedInt>>::value)
-    return herlihy_rc_ptr<PaddedInt, true>::make_shared(val);                             // Herlihy's algorithm
-  else if constexpr (std::is_same<SPType<PaddedInt>, cdrc::rc_ptr<PaddedInt>>::value)
-    return cdrc::rc_ptr<PaddedInt>::make_shared(val);                                     // Our algorithm
-  else if constexpr (std::is_same<SPType<PaddedInt>, OrcRcPtr<PaddedInt>>::value)   // ORC-GC's "orc_ptr"
-    return orcgc_ptp::make_orc<PaddedInt>(val);
+  else if constexpr (std::is_same_v<SPType<PaddedInt>, HerlihyRcPtrOpt<PaddedInt>>)
+    return herlihy_rc_ptr<PaddedInt, true>::make_shared(val);                       // Herlihy's algorithm
+  else if constexpr (std::is_same_v<SPType<PaddedInt>, MySharedPtr<PaddedInt>>)
+    return parlay::make_shared<PaddedInt>(val);
   else // homebrew shared pointer [depricated]
   {
     std::cerr << "invalid SPType" << std::endl;
@@ -116,14 +87,8 @@ SPType<T> make_shared() {
   else if constexpr (std::is_same<SPType<T>, std::experimental::shared_ptr<T>>::value)
     return std::experimental::make_shared<T>();
 #endif
-  else if constexpr (std::is_same<SPType<T>, HerlihyRcPtr<T>>::value)
-    return HerlihyRcPtr<T>::make_shared();
   else if constexpr (std::is_same<SPType<T>, HerlihyRcPtrOpt<T>>::value)
     return HerlihyRcPtrOpt<T>::make_shared();
-  else if constexpr (std::is_same<SPType<T>, cdrc::rc_ptr<T>>::value)
-    return cdrc::rc_ptr<T>::make_shared();
-  else if (std::is_same<SPType<PaddedInt>, OrcRcPtr<PaddedInt>>::value)   // ORC-GC's "orc_ptr"
-    return orcgc_ptp::make_orc<T>();
   else {
     std::cerr << "invalid SPType" << std::endl;
     exit(1);
@@ -188,16 +153,10 @@ void run_benchmark(std::string alg) {
   else if (alg == "folly")
     run_benchmark_helper<BenchmarkType, FollyAtomicStdSharedPtr, std::shared_ptr>("Folly atomic std::shared_ptr");
 #endif
-  else if (alg == "weak_atomic")
-    run_benchmark_helper<BenchmarkType, WeakAtomicRcPtrLockfree, OurRcPtr>("Weak Atomic rc_ptr (lockfree)");
   else if (alg == "herlihy")
-    run_benchmark_helper<BenchmarkType, herlihy_arc_ptr, HerlihyRcPtr>("Herlihy");
-  else if (alg == "herlihy-opt")
     run_benchmark_helper<BenchmarkType, herlihy_arc_ptr_opt, HerlihyRcPtrOpt>("Herlihy-Opt");
-  else if (alg == "arc")
-    run_benchmark_helper<BenchmarkType, SnapshottingArcPtr, OurRcPtr>("ARC");
-  else if (alg == "orc")
-    run_benchmark_helper<BenchmarkType, OrcAtomicRcPtr, OrcRcPtr>("ORC-GC");
+  else if (alg == "mine")
+    run_benchmark_helper<BenchmarkType, MyAtomicSharedPtr, MySharedPtr>("My atomic shared ptr");
   else {
     std::cout << "invalid alg name: " << alg << std::endl;
     exit(1);

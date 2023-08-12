@@ -190,17 +190,17 @@ endfunction()
 # --------------------- Load-store experiment --------------------------
 
 add_custom_target(exp-store-figures)
-set(store_load_algorithms "gnu,jss,folly,herlihy,herlihy-opt,orc,arc")
-set(store_load_labels "GNU C++,just::thread,Folly,Herlihy,Herlihy (optimized),OrcGC,DRC")
-set(store_load_colors "tab:blue,tab:orange,tab:green,tab:red,tab:purple,tab:brown,tab:pink")
-set(store_load_markers "s,x,o,P,*,|,>")
+set(store_load_algorithms "herlihy,herlihy-opt,orc,arc")
+set(store_load_labels "Herlihy,Herlihy (optimized),OrcGC,DRC")
+set(store_load_colors "#1F77B4,#FF7F0E,#2CA02C,#D62728")
+set(store_load_markers "v,s,*,<")
 
 # Subfigure (a): Load-store experiment with 10 atomics and 10% stores
 add_scaling_figure(
     THROUGHPUT
     NAME exp-store-load-10-10
     BENCHMARK bench_ref_count
-    THREADS 1,16,32,64,96,128,160,192
+    THREADS 1,8,16,24,32,40,48,56
     ALGORITHMS ${store_load_algorithms}
     LABELS ${store_load_labels}
     COLORS ${store_load_colors}

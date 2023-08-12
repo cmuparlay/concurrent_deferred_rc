@@ -66,7 +66,7 @@ ODIR:=./obj
 LDIRS:=./ext/parharness
 # libraries to link against (are expected to be in the above directories,
 # or they are system default)
-LIBS :=-ljemalloc -lparharness -lpthread -lhwloc -lm -lrt
+LIBS :=-lparharness -lpthread -lhwloc -lm -lrt
 # directories that should be built first using recursive make.
 # You should avoid this in general, but it's useful for building
 # external libraries which we depend on
@@ -80,7 +80,7 @@ BINDIR :=./bin
 # C compiler
 CC:=gcc
 # C++ compiler
-CXX:=g++-9
+CXX:=g++-12
 # linker
 LD:= $(CXX)
 

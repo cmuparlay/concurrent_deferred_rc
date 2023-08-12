@@ -8,6 +8,11 @@ import os
 import re
 import subprocess
 
+# Use headless backend for matplotlib. This allows it
+# to run on a server without a GUI available.
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 
 class bcolors:
@@ -25,7 +30,7 @@ class bcolors:
 benchmark_throughput_pattern = re.compile('Total Throughput = (\S+) Mop/s')
 memory_usage_pattern = re.compile('Average number of allocated objects: (\S+) ')
 
-NUMA_COMMAND = ''#'numactl -i all '
+NUMA_COMMAND = 'numactl -i all '
 JEMALLOC_COMMAND = 'LD_PRELOAD=/usr/local/lib/libjemalloc.so '
 NUM_THREADS_COMMAND = 'NUM_THREADS={} '
 
@@ -183,10 +188,6 @@ if __name__ == "__main__":
   parser.add_argument('--jemalloc', action='store_true', default=False, help='Run the benchmarks with jemalloc')
   parser.add_argument('arguments', nargs=argparse.REMAINDER, help='(Seperated by --) Additional arguments to forward to the benchmark executable')
   args = parser.parse_args()
-  
-  # Use headless backend for matplotlib. This allows it
-  # to run on a server without a GUI available.
-  matplotlib.use("Agg")
 
   # Use TrueType fonts
   matplotlib.rcParams['pdf.fonttype'] = 42

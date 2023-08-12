@@ -51,7 +51,7 @@ target_compile_definitions(concurrent_deferred_rc INTERFACE -DMCX16)
 target_compile_options(concurrent_deferred_rc INTERFACE -mcx16)
 
 # The following might not be needed for 16-byte atomics
-target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
+#target_compile_options(concurrent_deferred_rc INTERFACE "-march=native")
 
 # Configure support for just::threads, if available
 # Defines the flag JUST_THREADS_AVAILABLE in cmake,
@@ -89,7 +89,7 @@ else()
   set(FOLLY_AVAILABLE TRUE)
   add_library(fss INTERFACE)
   target_include_directories(fss INTERFACE ${FOLLY_INCLUDE})
-  target_link_libraries(fss INTERFACE ${FOLLY_LIB} glog dl pthread double-conversion)
+  target_link_libraries(fss INTERFACE ${FOLLY_LIB} glog dl pthread double-conversion fmt gflags)
   target_compile_features(fss INTERFACE cxx_std_14)
   target_compile_definitions(concurrent_deferred_rc INTERFACE -DARC_FOLLY_AVAILABLE)
   target_link_libraries(concurrent_deferred_rc INTERFACE fss)

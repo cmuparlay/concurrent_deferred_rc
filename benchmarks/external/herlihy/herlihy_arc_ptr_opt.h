@@ -31,16 +31,12 @@ public:
     bool incremented = false;
     internal::herlihy_counted_object<T>* ptr = nullptr;
     while(!incremented) {
-      
       auto acquired_ptr = ar.acquire(&atomic_ptr);
       ptr = acquired_ptr.value;
       if(ptr == nullptr) break;
-      uint64_t r = ptr->ref_cnt;
-      while(r > 0) {
-        if(ptr->ref_cnt.compare_exchange_strong(r, r+1)) {
-          incremented = true;
-          break;
-        }
+
+      if (ptr->ref_cnt.increment(1)) {
+        incremented = true;
       }
     }
     return rc_ptr_t(ptr, rc_ptr_t::AddRef::no);
@@ -81,7 +77,7 @@ private:
 
   // this will never be used
   struct counted_incrementer {
-    void operator()(internal::herlihy_counted_object<T>* ptr) const {
+    void operator()([[maybe_unused]] internal::herlihy_counted_object<T>* ptr) const {
     }
   };
   

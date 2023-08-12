@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <latch>
 #include <numeric>
 #include <vector>
 #include <stdlib.h>
@@ -10,7 +11,6 @@
 #include <boost/program_options.hpp>
 
 #include "common.hpp"
-#include "barrier.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -65,17 +65,17 @@ struct RefCountBenchmark : Benchmark {
       std::vector<std::thread> threads;
 
       std::atomic<bool> done = false;
-      Barrier barrier(n_threads+1);
+      std::latch barrier(n_threads+1);
       //cout << N << endl;
 
       for (size_t p = 0; p < n_threads; p++) {
         threads.emplace_back([&barrier, &done, this, &cnt, p]() {
           utils::rand::init(p+1);
 
-          barrier.wait();
+          barrier.arrive_and_wait();
           
           long long int ops = 0;
-          volatile long long int sum = 0;
+          long long int sum = 0;
           
           for (; !done; ops++) {
             int op = utils::rand::get_rand()%100;
@@ -95,7 +95,7 @@ struct RefCountBenchmark : Benchmark {
               // asp_vec[asp_index].compare_exchange_strong(x, std::move(y));
             } else {  // load
               SPType<PaddedInt> sp = asp_vec[asp_index].load();
-              int x = sp->getInt();
+              int x = *sp;
               sum += x;            
             }
           }
@@ -104,7 +104,7 @@ struct RefCountBenchmark : Benchmark {
       }
       
       // Run benchmark for one second
-      barrier.wait();
+      barrier.arrive_and_wait();
       start_timer();
 
       std::vector<size_t> allocations;
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
   ("update,u", po::value<int>()->default_value(10), "Percentage of Stores")
   ("runtime,r", po::value<double>()->default_value(0.5), "Runtime of Benchmark (seconds)")
   ("iterations,i", po::value<int>()->default_value(5), "Number of times to run benchmark")
-  ("alg,a", po::value<string>()->default_value("gnu"), "Choose one of: gnu, jss, folly, herlihy, weak_atomic, arc, orc");
+  ("alg,a", po::value<string>()->default_value("gnu"), "Choose one of: gnu, jss, folly, herlihy, mine");
 
 
   po::variables_map vm;
