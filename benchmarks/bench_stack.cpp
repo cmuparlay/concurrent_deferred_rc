@@ -34,8 +34,13 @@ struct StackBenchmark : Benchmark {
   using stack_type = atomic_stack<int, AtomicSPType, SPType>;
 
   StackBenchmark(): Benchmark(),
-                       N(bench_params::size),
-                       stacks(N) {
+                    N(bench_params::size),
+                    stacks(N),
+                    expected_stack_size(bench_params::stack_size + bench_params::threads / N) {
+
+    // Add P/N extra items so that the expected size of every stack under
+    // contention is bench_params::stack_size (to account for pops in progress).
+
     if(N > 100000) {  // initialize in parallel
       size_t n_threads = bench_params::threads;
       assert(n_threads <= utils::num_threads());
@@ -45,8 +50,8 @@ struct StackBenchmark : Benchmark {
           utils::rand::init(p+1);
           size_t chunk_size = N/n_threads + 1;
           for(size_t i = p*chunk_size; i < N && i < (p+1)*chunk_size; i++) {
-            for (size_t j = 0; j < bench_params::stack_size; j++) {
-              stacks[i].push_front(utils::rand::get_rand()%bench_params::stack_size);
+            for (size_t j = 0; j < expected_stack_size; j++) {
+              stacks[i].push_front(utils::rand::get_rand()%expected_stack_size);
             }
           }
         });
@@ -55,8 +60,8 @@ struct StackBenchmark : Benchmark {
     }
     else { // intialize sequentially
       for(size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < bench_params::stack_size; j++) {
-          stacks[i].push_front(utils::rand::get_rand()%bench_params::stack_size);
+        for (size_t j = 0; j < expected_stack_size; j++) {
+          stacks[i].push_front(utils::rand::get_rand()%expected_stack_size);
         }
       }
     }
@@ -102,7 +107,7 @@ struct StackBenchmark : Benchmark {
                 sum += val.has_value();
               }
               else {
-                auto val = utils::rand::get_rand() % bench_params::stack_size;
+                auto val = utils::rand::get_rand() % expected_stack_size;
                 auto found = stacks[stack_index].find(val);
                 sum += found;
               }
@@ -160,7 +165,24 @@ struct StackBenchmark : Benchmark {
 
   size_t N;
   std::vector<stack_type> stacks;
+  size_t expected_stack_size;
 };
+
+//static_assert(sizeof(parlay::details::control_block_inplace<int>) == 32);
+//static_assert(sizeof(std::_Sp_counted_ptr_inplace<int, std::allocator<int>, std::_S_atomic>) == 24);
+//static_assert(sizeof(internal::herlihy_counted_object<int>) == 16);
+
+//static_assert(sizeof(parlay::details::control_block_with_ptr<int>) == 24);
+//static_assert(sizeof(std::_Sp_counted_ptr<int, std::_S_atomic>) == 24);
+
+//static_assert(sizeof(atomic_stack<int, parlay::atomic_shared_ptr, parlay::shared_ptr>::Node) == 16);
+//static_assert(sizeof(atomic_stack<int, herlihy_arc_ptr_opt, HerlihyRcPtrOpt>::Node) == 16);
+
+//static_assert(sizeof(parlay::details::control_block_with_ptr<atomic_stack<int, parlay::atomic_shared_ptr, parlay::shared_ptr>::Node>) == 24);
+static_assert(sizeof(parlay::details::control_block_inplace<atomic_stack<int, parlay::atomic_shared_ptr, parlay::shared_ptr>::Node>) == 40);
+//static_assert(sizeof(parlay::details::fast_control_block<atomic_stack<int, parlay::atomic_shared_ptr, parlay::shared_ptr>::Node>) == 24);
+//static_assert(sizeof(std::_Sp_counted_ptr<atomic_stack<int, folly::atomic_shared_ptr, std::shared_ptr>::Node, std::_S_atomic>) == 40);
+//static_assert(sizeof(internal::herlihy_counted_object<atomic_stack<int, herlihy_arc_ptr_opt, HerlihyRcPtrOpt>::Node>) == 24);
 
 int main(int argc, char* argv[]) {
   po::options_description description("Usage:");

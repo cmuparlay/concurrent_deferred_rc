@@ -1,0 +1,3 @@
+[submodule "benchmarks/external/atomic_shared_ptr"]
+	path = benchmarks/external/atomic_shared_ptr
+	url = https://github.com/DanielLiamAnderson/atomic_shared_ptr.git

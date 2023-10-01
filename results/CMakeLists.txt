@@ -205,7 +205,7 @@ add_scaling_figure(
     LABELS ${store_load_labels}
     COLORS ${store_load_colors}
     MARKERS ${store_load_markers}
-    BENCHMARK_ARGS -r 1 -s 10 -u 10
+    BENCHMARK_ARGS -r 5 -s 10 -u 10
     LEGEND exp-store-load-legend
 )
 add_dependencies(exp-store-figures exp-store-load-10-10)
@@ -254,53 +254,133 @@ add_scaling_figure(
 # --------------------- Stack experiment --------------------------
 
 add_custom_target(exp-stack-figures)
-set(stack_algorithms "gnu,jss,folly,herlihy-opt,orc,weak_atomic,arc")
-set(stack_labels "GNU C++,just::thread,Folly,Herlihy (optimized),OrcGC,DRC,DRC (+ snapshots)")
-set(stack_colors "tab:blue,tab:orange,tab:green,tab:purple,tab:brown,tab:pink,tab:olive")
-set(stack_markers "s,x,o,*,|,>,D")
+set(stack_algorithms "gnu,jss-free,folly,mine")
+set(stack_labels "GNU C++,JSS-OS,Folly,Mine")
+set(stack_colors "tab:brown,tab:blue,tab:green,tab:red")
+set(stack_markers "s,x,o,*")
+set(stack_threads "1,18,36,54,72,108,144,180,216")
 
-# Subfigure (e): Stack experiment with 10 stacks and 1% stores
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1-1
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1 -u 1 -i 7 --peek=true
+    LEGEND exp-stack-legend
+)
+add_dependencies(exp-stack-figures exp-stack-1-1)
+
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1-10
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1 -u 10 -i 7 --peek=true
+    LEGEND exp-stack-legend
+)
+add_dependencies(exp-stack-figures exp-stack-1-10)
+
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1-50
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1 -u 50 -i 7 --peek=true
+    LEGEND exp-stack-legend
+)
+add_dependencies(exp-stack-figures exp-stack-1-50)
+
 add_scaling_figure(
     THROUGHPUT
     NAME exp-stack-10-1
     BENCHMARK bench_stack
-    THREADS 1,16,32,64,96,128,160,192
+    THREADS ${stack_threads}
     ALGORITHMS ${stack_algorithms}
     LABELS ${stack_labels}
     COLORS ${stack_colors}
     MARKERS ${stack_markers}
-    BENCHMARK_ARGS -r 1 -s 10 -u 1
+    BENCHMARK_ARGS -r 10 -s 10 -u 1 -i 7 --peek=true
     LEGEND exp-stack-legend
 )
 add_dependencies(exp-stack-figures exp-stack-10-1)
 
-# Subfigure (f): Stack experiment with 10 stacks and 10% stores
+
 add_scaling_figure(
     THROUGHPUT
     NAME exp-stack-10-10
     BENCHMARK bench_stack
-    THREADS 1,16,32,64,96,128,160,192
+    THREADS ${stack_threads}
     ALGORITHMS ${stack_algorithms}
     LABELS ${stack_labels}
     COLORS ${stack_colors}
     MARKERS ${stack_markers}
-    BENCHMARK_ARGS -r 5 -s 10 -u 10
+    BENCHMARK_ARGS -r 10 -s 10 -u 10 -i 7 --peek=true
 )
 add_dependencies(exp-stack-figures exp-stack-10-10)
 
-# Subfigure (g): Stack experiment with 10 stacks and 50% stores
 add_scaling_figure(
     THROUGHPUT
     NAME exp-stack-10-50
     BENCHMARK bench_stack
-    THREADS 1,16,32,64,96,128,160,192
+    THREADS ${stack_threads}
     ALGORITHMS ${stack_algorithms}
     LABELS ${stack_labels}
     COLORS ${stack_colors}
     MARKERS ${stack_markers}
-    BENCHMARK_ARGS -r 5 -s 10 -u 50
+    BENCHMARK_ARGS -r 10 -s 10 -u 50 -i 7 --peek=true
 )
 add_dependencies(exp-stack-figures exp-stack-10-50)
+
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1000000-1
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1000000 -u 1 -i 7 --peek=true
+)
+add_dependencies(exp-stack-figures exp-stack-1000000-1)
+
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1000000-10
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1000000 -u 10 -i 7 --peek=true
+)
+add_dependencies(exp-stack-figures exp-stack-1000000-10)
+
+add_scaling_figure(
+    THROUGHPUT
+    NAME exp-stack-1000000-50
+    BENCHMARK bench_stack
+    THREADS ${stack_threads}
+    ALGORITHMS ${stack_algorithms}
+    LABELS ${stack_labels}
+    COLORS ${stack_colors}
+    MARKERS ${stack_markers}
+    BENCHMARK_ARGS -r 10 -s 1000000 -u 50 -i 7 --peek=true
+)
+add_dependencies(exp-stack-figures exp-stack-1000000-50)
 
 # --------------------- Memory experiments --------------------------
 

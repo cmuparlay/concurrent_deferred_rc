@@ -95,6 +95,10 @@ else()
   target_link_libraries(concurrent_deferred_rc INTERFACE fss)
 endif()
 
+find_package(Parlay 2.2.1 REQUIRED)
+target_link_libraries(concurrent_deferred_rc INTERFACE Parlay::parlay)
+message(STATUS "Using ParlayLib found at ${Parlay_DIR}")
+
 # -------------------------------------------------------------------
 #                             Tests
 

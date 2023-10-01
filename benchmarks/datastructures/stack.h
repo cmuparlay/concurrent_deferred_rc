@@ -67,7 +67,9 @@ concept Swappable = AtomicSharedPointer<T> && requires(T a) {
 //
 template<typename T, template<typename> typename AtomicSPType, template<typename> typename SPType>
 //requires AtomicSharedPointer<AtomicSPType<T>>
-class alignas(64) atomic_stack {
+class alignas(128) atomic_stack {
+
+public:
 
   struct Node;
   using atomic_sp_t = AtomicSPType<Node>;
@@ -76,13 +78,6 @@ class alignas(64) atomic_stack {
 
   // Load should return the shared_ptr-like type
   static_assert(std::is_same_v<load_t, sp_t>);
-
-  struct Node {
-    T t;
-    sp_t next;
-    Node() = default;
-    explicit Node(T t_) : t(std::move(t_)) { }
-  };
 
   atomic_sp_t head;
 
@@ -94,6 +89,14 @@ class alignas(64) atomic_stack {
   }
 
  public:
+  struct Node {
+    T t;
+    sp_t next;
+    Node() = default;
+    explicit Node(T t_) : t(std::move(t_)) { }
+  };
+
+
   atomic_stack() = default;
 
   atomic_stack(atomic_stack&) = delete;
@@ -172,7 +175,5 @@ class alignas(64) atomic_stack {
     return atomic_sp_t::currently_allocated();
   }
 };
-
-
 
 #endif  // CDRC_BENCHMARKS_DATASTRUCTURES_STACK_H

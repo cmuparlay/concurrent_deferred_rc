@@ -12,6 +12,8 @@
 
 #include "common.hpp"
 
+#include "measurement.h"
+
 using namespace std;
 namespace po = boost::program_options;
 
@@ -24,6 +26,8 @@ namespace bench_params{
   int cas_percent = 0;
   string alg = "gnu";
 }
+
+static operation_measurement load_timer{"Loads"};
 
 template<template<typename> typename AtomicSPType, template<typename> typename SPType>
 struct RefCountBenchmark : Benchmark {
@@ -94,7 +98,9 @@ struct RefCountBenchmark : Benchmark {
               // SPType<int> y(new PaddedInt(new_val));
               // asp_vec[asp_index].compare_exchange_strong(x, std::move(y));
             } else {  // load
+              load_timer.start_measurement();
               SPType<PaddedInt> sp = asp_vec[asp_index].load();
+              load_timer.end_measurement();
               int x = *sp;
               sum += x;            
             }

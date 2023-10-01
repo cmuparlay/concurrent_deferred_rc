@@ -50,3 +50,5 @@ if(JUST_THREADS_AVAILABLE)
   add_my_test(test_jss_arc)
 endif()
 
+add_my_test(test_jss_free)
+
