@@ -1,4 +1,4 @@
-#include <cassert>
+#include "gtest/gtest.h"
 
 #include <atomic>
 #include <iostream>
@@ -18,34 +18,34 @@ using atomic_sp_type = cdrc::atomic_rc_ptr<T>;
 template<typename T>
 using sp_type = cdrc::rc_ptr<T>;
 
-void test_seq() {
+TEST(TestBenchmarkStack, TestSeq) {
   atomic_stack<int, atomic_sp_type, sp_type> stack;
-  assert(!stack.find(5));
-  assert(!stack.front());
-  assert(!stack.pop_front());
+  ASSERT_TRUE(!stack.find(5));
+  ASSERT_TRUE(!stack.front());
+  ASSERT_TRUE(!stack.pop_front());
   stack.push_front(5);
-  assert(stack.find(5));
-  assert(stack.front().value() == 5);
-  assert(stack.pop_front().value() == 5);
-  assert(!stack.find(5));
-  assert(!stack.front());
-  assert(!stack.pop_front());
-  assert(!stack.front());
+  ASSERT_TRUE(stack.find(5));
+  ASSERT_TRUE(stack.front().value() == 5);
+  ASSERT_TRUE(stack.pop_front().value() == 5);
+  ASSERT_TRUE(!stack.find(5));
+  ASSERT_TRUE(!stack.front());
+  ASSERT_TRUE(!stack.pop_front());
+  ASSERT_TRUE(!stack.front());
   stack.push_front(5);
   stack.push_front(6);
   stack.push_front(7);
-  assert(stack.find(6));
-  assert(stack.find(7));
-  assert(stack.front().value() == 7);
-  assert(stack.pop_front().value() == 7);
-  assert(stack.front().value() == 6);
-  assert(stack.pop_front().value() == 6);
-  assert(stack.front().value() == 5);
-  assert(stack.pop_front().value() == 5);
-  assert(!stack.front());
+  ASSERT_TRUE(stack.find(6));
+  ASSERT_TRUE(stack.find(7));
+  ASSERT_EQ(stack.front().value(), 7);
+  ASSERT_EQ(stack.pop_front().value(), 7);
+  ASSERT_EQ(stack.front().value(), 6);
+  ASSERT_EQ(stack.pop_front().value(), 6);
+  ASSERT_EQ(stack.front().value(), 5);
+  ASSERT_EQ(stack.pop_front().value(), 5);
+  ASSERT_TRUE(!stack.front());
 }
 
-void test_par() {
+TEST(TestBenchmarkStack, TestPar) {
   volatile long long sum = 0;
   volatile long long checksum1 = 0;
   volatile long long checksum2 = 0;
@@ -100,19 +100,8 @@ void test_par() {
   popper1.join();
   popper2.join();
 
-  assert(stack.size() == 0);
-  assert(checksum1 + checksum2 == actualsum1 + actualsum2);
+  ASSERT_EQ(stack.size(), 0);
+  ASSERT_EQ(checksum1 + checksum2, actualsum1 + actualsum2);
 
   cout << sum << endl;
 }
-
-void run_all_tests() {
-  test_seq();
-  test_par();  
-}
-
-int main () {
-  run_all_tests();
-}
-
-  
