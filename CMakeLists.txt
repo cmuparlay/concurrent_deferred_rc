@@ -51,12 +51,7 @@ target_include_directories(cdrc INTERFACE
   $<BUILD_INTERFACE:${CDRC_INCLUDE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-option(CDRC_USE_CXX_20 "Require Cdrc to build with C++20")
-if (CDRC_USE_CXX_20)
-  target_compile_features(cdrc INTERFACE cxx_std_20)
-else()
-  target_compile_features(cdrc INTERFACE cxx_std_17)
-endif()
+target_compile_features(cdrc INTERFACE cxx_std_20)
 
 # -------------------------------------------------------------------
 #                         Installation

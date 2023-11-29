@@ -1,5 +1,4 @@
-
-#include <cassert>
+#include "gtest/gtest.h"
 
 #include <atomic>
 #include <algorithm>
@@ -16,31 +15,33 @@ using namespace std;
 
 const size_t NUM_THREADS = cdrc::utils::num_threads() - 1;
 
-void test_simple() {
+TEST(TestExampleLinkedList, TestSimple) {
   cdrc::atomic_linked_list set;
-  assert(!set.find(2));
-  assert(!set.remove(0));
-  assert(!set.find(2));
-  assert(set.insert(2));
-  assert(set.find(2));
-  assert(!set.find(3));
-  assert(set.insert(3));
+  ASSERT_TRUE(!set.find(2));
+  ASSERT_TRUE(!set.remove(0));
+  ASSERT_TRUE(!set.find(2));
+  ASSERT_TRUE(set.insert(2));
+  ASSERT_TRUE(set.find(2));
+  ASSERT_TRUE(!set.find(3));
+  ASSERT_TRUE(set.insert(3));
   // std::cout << set.size() << std::endl;
-  assert(set.find(3));
-  assert(!set.find(1));
-  assert(set.insert(1));
-  assert(set.find(1));
-  assert(set.find(2));
-  assert(set.find(3));
-  assert(!set.find(4));
-  assert(set.remove(2));
-  assert(!set.find(2));
-  assert(set.find(3));
-  assert(set.find(1));
-  assert(!set.find(4));
+  ASSERT_TRUE(set.find(3));
+  ASSERT_TRUE(!set.find(1));
+  ASSERT_TRUE(set.insert(1));
+  ASSERT_TRUE(set.find(1));
+  ASSERT_TRUE(set.find(2));
+  ASSERT_TRUE(set.find(3));
+  ASSERT_TRUE(!set.find(4));
+  ASSERT_TRUE(set.remove(2));
+  ASSERT_TRUE(!set.find(2));
+  ASSERT_TRUE(set.find(3));
+  ASSERT_TRUE(set.find(1));
+  ASSERT_TRUE(!set.find(4));
 }
 
-void stress_test(int num_iter) {
+TEST(TestExampleLinkedList, StressTest) {
+  const int num_iter = 4000;
+
   cdrc::atomic_linked_list set;
   
   vector<int> keys;
@@ -57,23 +58,23 @@ void stress_test(int num_iter) {
   for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([p, &set, &keys, &barrier, &num_iter] () {
       for(int i = p; i < num_iter; i+=NUM_THREADS)
-        assert(set.insert(keys[i]));
+        ASSERT_TRUE(set.insert(keys[i]));
       barrier.wait();
       for(int i = p; i < num_iter; i+=NUM_THREADS)
-        assert(set.remove(i));      
+        ASSERT_TRUE(set.remove(i));      
     });        
   }
   for (auto& t : threads) t.join(); 
 }
 
-void test_concurrent_delete() {
+TEST(TestExampleLinkedList, TestConcurrentDelete) {
   cdrc::atomic_linked_list set;
   int num_iter = 1000;
   
   long long expected_sum = 0;
   atomic<long long> actual_sum = 0;
   for(int i = 0; i < num_iter; i++) {
-    assert(set.insert(i));
+    ASSERT_TRUE(set.insert(i));
     expected_sum += i;
   }
 
@@ -95,16 +96,5 @@ void test_concurrent_delete() {
   }
   for (auto& t : threads) t.join(); 
 
-  assert(actual_sum == expected_sum);
-}
-
-void run_all_tests(int num_iter) {
-  test_simple();
-  stress_test(num_iter);
-  test_concurrent_delete();  
-}
-
-int main() {
-  run_all_tests(4000);
-  return 0;
+  ASSERT_EQ(actual_sum, expected_sum);
 }

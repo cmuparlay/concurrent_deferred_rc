@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 
-#include <cassert>
 #include <cstdio>
 
 #include <atomic>

@@ -1,3 +1,4 @@
+#include "gtest/gtest.h"
 // Concurrent stack using Folly's hazard pointers
 
 #include <atomic>
@@ -39,18 +40,18 @@ struct stack {
 
 const int M = 10000;
 
-void test_seq() {
+TEST(TestHazptrStack, TestSeq) {
   stack<int> s;
-  assert(!s.pop_front());
+  ASSERT_TRUE(!s.pop_front());
   s.push_front(5);
-  assert(s.pop_front().value() == 5);
-  assert(!s.pop_front());
+  ASSERT_EQ(s.pop_front().value(), 5);
+  ASSERT_TRUE(!s.pop_front());
   s.push_front(5);
   s.push_front(6);
   s.push_front(7);
-  assert(s.pop_front().value() == 7);
-  assert(s.pop_front().value() == 6);
-  assert(s.pop_front().value() == 5);
+  ASSERT_EQ(s.pop_front().value(), 7);
+  ASSERT_EQ(s.pop_front().value(), 6);
+  ASSERT_EQ(s.pop_front().value(), 5);
 }
 
 void test_par() {
@@ -99,20 +100,13 @@ void test_par() {
   popper1.join();
   popper2.join();
 
-  assert(checksum1 + checksum2 == actualsum1 + actualsum2);
+  ASSERT_EQ(checksum1 + checksum2, actualsum1 + actualsum2);
 }
 
-void run_all_tests() {
-  test_seq();
-  test_par();
-}
-
-int main() {
+TEST(TestHazptrStack, TestBasic) {
   stack<int> s;
   s.push_front(5);
   auto val = s.pop_front();
-  assert(val.has_value());
-  assert(val.value() == 5);
-
-  run_all_tests();
+  ASSERT_TRUE(val.has_value());
+  ASSERT_EQ(val.value(), 5);
 }
