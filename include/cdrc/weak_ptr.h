@@ -76,6 +76,8 @@ class weak_ptr : public pointer_policy::template rc_ptr_policy<T> {
 
   size_t use_count() const noexcept { return (ptr == nullptr) ? 0 : ptr->ref_cnt.load(); }
 
+  size_t weak_count() const noexcept { return (ptr == nullptr) ? 0 : ptr->weak_cnt.load(); }
+
   bool expired() const { return use_count() == 0; }
 
   void swap(weak_ptr &other) {
