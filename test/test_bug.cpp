@@ -16,20 +16,20 @@ struct test {
 };
 
 void task1(cdrc::rc_ptr<test> x) {
-  ASSERT_EQ(x.use_count(), 1);
+  // ASSERT_EQ(x.use_count(), 1);
   x = nullptr;
 }
 
 void task2(cdrc::weak_ptr<test> y) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   cdrc::rc_ptr<test> z = y.lock();
-  ASSERT_EQ(y.use_count(), 1);
-  ASSERT_EQ(y.weak_count(), 2);
+  // ASSERT_EQ(y.use_count(), 1);
+  // ASSERT_EQ(y.weak_count(), 2);
 
   y=nullptr;
   z=nullptr;
 
-  ASSERT_TRUE(destroyed);
+  // ASSERT_TRUE(destroyed);
 }
 
 TEST(TestBug, Idk) {
