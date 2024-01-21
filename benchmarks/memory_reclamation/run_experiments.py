@@ -114,9 +114,9 @@ if __name__ == "__main__":
     parser.add_argument('--datastructure', '-d', type=str, default='all',
                         help=f'datastructure to benchmark {[*datastructures, "all"]}')
     parser.add_argument('--size', '-s', type=str,
-                        default='100', help=f'??? {sizes}')
+                        default='100', help=f'Size of datastructure {sizes}')
     parser.add_argument('--update_percent', '-u', type=int,
-                        default=10, help=f'??? {update_percents}')
+                        default=10, help=f'Update percentage, with the remainder being reads {update_percents}')
     parser.add_argument('--runtime', '-rt', type=int, default=5,
                         help='runtime of each experiment in seconds')
     parser.add_argument('--repeats', '-r', type=int, default=3,
