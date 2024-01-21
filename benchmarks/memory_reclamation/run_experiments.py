@@ -59,14 +59,15 @@ import create_graphs as graph
 datastructures = ['hashtable', 'list', 'bst']
 
 
-def tostring(ds, wl):
-    return 'exp-'+ds+'-'+wl
-
-# Returns True if the given command returns a non-zero return code,
-# i.e., is probably a valid command
+def to_experiment_string(ds, workload: int):
+    return f'exp-{ds}-{workload}'
 
 
-def valid_command(cmd):
+def valid_command(cmd: str) -> bool:
+    """
+    Returns True if the given command returns a non-zero return code,
+    i.e., is probably a valid command
+    """
     DEVNULL = open(os.devnull, 'r+b', 0)
     returncode = subprocess.call(
         [cmd], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL, shell=True)
@@ -82,14 +83,17 @@ def convert(seconds):
     return f'{hour}h:{minutes:02}m:{seconds:02}s'
 
 
-def run(ds, wl, tr, count, outfile):
+def run(binary, preamble, ds, wl, tr, runtime, count, outfile):
+    # runtime in second
     num_runs = 0
     for th in threads:
         num_threads = max(32, th+1)
-        cmd = "NUM_THREADS=" + str(num_threads) + " " + preamble + binary + " -i " + str(
-            runtime) + " -m " + str(wl) + " -r " + str(ds) + " -t " + str(th) + " -v "
+        # cmd = "NUM_THREADS=" + str(num_threads) + " " + preamble + binary + " -i " + str(
+        #     runtime) + " -m " + str(wl) + " -r " + str(ds) + " -t " + str(th) + " -v "
+        cmd = f"NUM_THREADS={num_threads} {preamble} {binary} -i {runtime} -m {wl} -r {ds} -t {th} -v "
         if tr != "":
-            cmd += "-d tracker=" + tr
+            # cmd += "-d tracker=" + tr
+            cmd += f"-d tracker={tr}"
         if not count:
             print(cmd)
         for i in range(repeats):
@@ -113,6 +117,12 @@ if __name__ == "__main__":
                         default='100', help=f'??? {sizes}')
     parser.add_argument('--update_percent', '-u', type=int,
                         default=10, help=f'??? {update_percents}')
+    parser.add_argument('--runtime', '-rt', type=int, default=5,
+                        help='runtime of each experiment in seconds')
+    parser.add_argument('--repeats', '-r', type=int, default=3,
+                        help='number of times to repeat each experiment')
+    parser.add_argument('--testmode', type=bool, default=False,
+                        help='Test mode, only checks 3 thread counts')
 
     args = parser.parse_args()
 
@@ -154,20 +164,13 @@ if __name__ == "__main__":
                    ("bst", '100K-50'),]
 
     graphs_only = False
-    test_mode = False
 
-    if len(sys.argv) == 3 and sys.argv[2] == "test":
-        runtime = 1
-        repeats = 1
-        test_mode = True
-    else:
-        # Change this variable to change runtime (measured in seconds)
-        runtime = 5
-        repeats = 3  # Change this variable to chage number of iterations
+    repeats = args.repeats
+    runtime = args.runtime
 
     # Compute thread counts to use for experiments
     P = multiprocessing.cpu_count()
-    if not test_mode:
+    if not args.testmode:
         p_step_size = P // 5
         threads = [1] + [k*p_step_size for k in range(1, 5)] + [P] + [
             P + k*p_step_size for k in range(1, 3)]
@@ -225,26 +228,31 @@ if __name__ == "__main__":
                 print(
                     f'Running {num_experiments} experiments in {convert(num_experiments*runtime)}')
                 print(f'\tthread counts: {", ".join(map(str, threads))}')
-                print(f'\truntime: {runtime}')
+                print(f'\truntime: {runtime}s')
                 print(f'\trepeats: {repeats}')
-            for exp in exp_to_run:
-                ds = exp[0]
-                wl = exp[1]
-                outfile = f'{tostring(ds, wl)}.out'
+            for (ds, workload) in exp_to_run:
+                outfile = f'{to_experiment_string(ds, workload)}.out'
                 os.system(f' > {outdir}{outfile}')
                 for rc_ds in rc_datastructures[ds]:
-                    num_experiments += run(rc_ds,
-                                           wl_num[wl], "", count, outfile)
+                    num_experiments += run(binary, preamble, rc_ds,
+                                           wl_num[workload], "", runtime, count, outfile)
                     if count == 0:
                         progress += len(threads)*repeats
-                        print(str(progress) + " out of " + str(num_experiments))
+                        print(f'{progress} out of {num_experiments}')
+                        # print(str(progress) + " out of " + str(num_experiments))
                 for tr in trackers:
-                    num_experiments += run(
-                        smr_datastructure[ds], wl_num[wl], tr, count, outfile)
+                    num_experiments += run(binary,
+                                           preamble,
+                                           smr_datastructure[ds],
+                                           wl_num[workload],
+                                           tr,
+                                           runtime,
+                                           count,
+                                           outfile)
                     if count == 0:
                         progress += len(threads)*repeats
                         print(str(progress) + " out of " + str(num_experiments))
 
     # create graphs
-    for exp in exp_to_run:
-        graph.graph_results_from_file(tostring(exp[0], exp[1]), '')
+    for (ds, workload) in exp_to_run:
+        graph.graph_results_from_file(to_experiment_string(ds, workload), '')
