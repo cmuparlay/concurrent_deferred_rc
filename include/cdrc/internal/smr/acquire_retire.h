@@ -108,6 +108,7 @@ struct acquire_retire : public memory_manager_base<T, acquire_retire<T, snapshot
       slot = other.slot;
       other.value = nullptr;
       other.slot = nullptr;
+      return *this;
     }
 
     void swap(acquired_pointer &other) {
