@@ -40,6 +40,7 @@ struct basic_acquired_pointer {
   basic_acquired_pointer &operator=(basic_acquired_pointer&& other) noexcept {
     value = other.value;
     other.value = nullptr;
+    return *this;
   }
 
   void swap(basic_acquired_pointer &other) {
