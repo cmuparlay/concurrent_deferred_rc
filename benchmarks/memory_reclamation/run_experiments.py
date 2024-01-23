@@ -59,8 +59,8 @@ import create_graphs as graph
 datastructures = ['hashtable', 'list', 'bst']
 
 
-def to_experiment_string(ds, workload: int):
-    return f'exp-{ds}-{workload}'
+def to_experiment_string(datastructure, workload: int) -> str:
+    return f'exp-{datastructure}-{workload}'
 
 
 def valid_command(cmd: str) -> bool:
@@ -83,24 +83,21 @@ def convert(seconds):
     return f'{hour}h:{minutes:02}m:{seconds:02}s'
 
 
-def run(binary, preamble, ds, wl, tr, runtime, count, outfile):
+def run(binary, preamble, datastructure, workload, tracker, runtime, count, outfile):
     # runtime in second
     num_runs = 0
     for th in threads:
         num_threads = max(32, th+1)
-        # cmd = "NUM_THREADS=" + str(num_threads) + " " + preamble + binary + " -i " + str(
-        #     runtime) + " -m " + str(wl) + " -r " + str(ds) + " -t " + str(th) + " -v "
-        cmd = f"NUM_THREADS={num_threads} {preamble} {binary} -i {runtime} -m {wl} -r {ds} -t {th} -v "
-        if tr != "":
-            # cmd += "-d tracker=" + tr
-            cmd += f"-d tracker={tr}"
+        cmd = f"NUM_THREADS={num_threads} {preamble} {binary} -i {runtime} -m {workload} -r {datastructure} -t {th} -v "
+        if tracker != "":
+            cmd += f"-d tracker={tracker}"
         if not count:
             print(cmd)
-        for i in range(repeats):
+        for _ in range(repeats):
             if count:
                 num_runs += 1
             else:
-                os.system(cmd + " >> " + outdir+outfile)
+                os.system(f'{cmd} >> {outdir}{outfile}')
     return num_runs
 
 
@@ -194,12 +191,12 @@ if __name__ == "__main__":
                 if 'HazardOpt' not in tr:
                     trackers_copy.append(tr)
             trackers = trackers_copy
-        wl = f'{size}-{up}'
-        if wl not in wl_num:
+        workload = f'{size}-{up}'
+        if workload not in wl_num:
             print(f'invalid workload: must be one of {[*wl_num.keys()]}')
-            print(f'you entered: {wl} (size-update_percent)')
+            print(f'you entered: {workload} (size-update_percent)')
             exit(1)
-        exp_to_run.append((ds, wl))
+        exp_to_run.append((ds, workload))
 
     binary = "./bin/release/main"
     preamble = ""
@@ -239,7 +236,6 @@ if __name__ == "__main__":
                     if count == 0:
                         progress += len(threads)*repeats
                         print(f'{progress} out of {num_experiments}')
-                        # print(str(progress) + " out of " + str(num_experiments))
                 for tr in trackers:
                     num_experiments += run(binary,
                                            preamble,
@@ -251,8 +247,8 @@ if __name__ == "__main__":
                                            outfile)
                     if count == 0:
                         progress += len(threads)*repeats
-                        print(str(progress) + " out of " + str(num_experiments))
+                        print(f'{progress} out of {num_experiments}')
 
     # create graphs
-    for (ds, workload) in exp_to_run:
-        graph.graph_results_from_file(to_experiment_string(ds, workload), '')
+    for (datastructure, workload) in exp_to_run:
+        graph.graph_results_from_file(to_experiment_string(datastructure, workload), '')
