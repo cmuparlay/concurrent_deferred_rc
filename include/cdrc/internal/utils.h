@@ -144,7 +144,7 @@ public:
   // false if the counter was not decremented to zero
   bool decrement(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
     if (x.fetch_sub(arg, order) == arg) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      // std::this_thread::sleep_for(std::chrono::milliseconds(50));
       T expected = 0;
       if (x.compare_exchange_strong(expected, zero_flag)) [[likely]] return true;
       else if ((expected & zero_pending_flag) && (x.exchange(zero_flag) & zero_pending_flag)) return true;

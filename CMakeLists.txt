@@ -160,7 +160,7 @@ if (CDRC_BENCHMARK)
 
   # Include benchmark targets
   message(STATUS "benchmarks: Enabled")
-  add_subdirectory(benchmark)
+  add_subdirectory(benchmarks)
 
 else()
   message(STATUS "benchmarks: Disabled (enable with -DCDRC_BENCHMARK=On)")
