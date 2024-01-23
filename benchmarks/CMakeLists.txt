@@ -7,7 +7,7 @@ find_package(Boost 1.40 COMPONENTS program_options REQUIRED)
 
 function(add_benchmark TARGET)
   add_executable(${TARGET} ${TARGET}.cpp)
-  target_link_libraries(${TARGET} concurrent_deferred_rc)
+  target_link_libraries(${TARGET} cdrc)
   target_link_libraries(${TARGET} Boost::program_options)
   target_compile_features(${TARGET} PRIVATE cxx_std_20)
 
