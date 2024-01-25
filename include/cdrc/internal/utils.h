@@ -215,6 +215,29 @@ private:
   mutable std::atomic<T> x;
 };
 
+template<typename T>
+class StrongAndWeakCounter {
+  alignas(alignof(T)) unsigned char storage[sizeof(T)];
+
+public:
+  StrongAndWeakCounter(uint32_t count) noexcept : ref_cnt(count), weak_cnt(count) {};
+  StrongAndWeakCounter(const StrongAndWeakCounter&) = delete;
+  StrongAndWeakCounter(StrongAndWeakCounter&&) = delete;
+
+  T load_strong(std::memory_order order = std::memory_order_seq_cst) const { return ref_cnt.load(order); }
+  T load_weak(std::memory_order order = std::memory_order_seq_cst) const { return weak_cnt.load(order); }
+
+  bool increment_strong(uint64_t count) { return ref_cnt.increment(count, std::memory_order_relaxed); }
+  bool increment_weak(uint64_t count) { return weak_cnt.increment(count, std::memory_order_relaxed); }
+
+  bool decrement_strong(uint64_t count) { return ref_cnt.decrement(count, std::memory_order_release); }
+  bool decrement_weak(uint64_t count) { return weak_cnt.decrement(count, std::memory_order_release); }
+
+private:
+  StickyCounter<uint32_t> ref_cnt;
+  StickyCounter<uint32_t> weak_cnt;
+};
+
 
 struct ThreadID {
   static std::vector<std::atomic<bool>> in_use; // initialize to false
