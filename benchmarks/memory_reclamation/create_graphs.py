@@ -1,12 +1,12 @@
-import sqlite3
 import os.path
-from os.path import isdir
-from os import mkdir
-import numpy as np
 import matplotlib as mpl
 import statistics as st
 import matplotlib as mpl
 import multiprocessing
+import json
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
 
 mpl.use('Agg')
 mpl.rcParams['grid.linestyle'] = ':'
@@ -227,10 +227,16 @@ def create_graph(exp_name, results, stddev, bench, memory_managers, threads, gra
 
 
 
-def readFile(filename, results, stddev, threads, benchmarks, memory_managers):
+def readFile(filename):
+  print(filename)
   resultsRaw = {}
   key = {}
   val = {}
+
+  results = {}
+  threads = []
+  benchmarks = []
+  memory_managers = []
 
   with open(indir + filename) as f:
     for line in f:
@@ -269,8 +275,14 @@ def readFile(filename, results, stddev, threads, benchmarks, memory_managers):
         add_benchmark(benchmarks, key)
 
   for key in resultsRaw:
-    results[key] = avg(resultsRaw[key][0:])
-    stddev[key] = st.pstdev(resultsRaw[key][0:])
+    results[key] = resultsRaw[key][0:]
+  
+  return {
+    'results': results,
+    'threads': threads,
+    'benchmarks': benchmarks,
+    'memory_managers': memory_managers,
+  }
 
 
 def convert(exp_name):
@@ -291,22 +303,101 @@ def convert(exp_name):
     gets = 100 - up
   return ds + ', size:' + str(size) + ', Gets:' + str(gets) + ' Updates:' + str(up) + ' RQs: ' + str(rq)
 
+def parse_experiment_data(results):
+  """
+  Returns a json containing a readable version of the results 
+  """
+  nice_data = {
+    'allocations': {},
+    'throughput': {},
+    'retired': {},
+    'metadata': {
+      'benchmarks': results['benchmarks'],
+      'memory_managers': results['memory_managers'],
+      'threads': results['threads'],
+    }
+  }
+  for (key, value) in results['results'].items():
+    split_key = key.split(', ') # [memory_manager, data_structure, size, gets updates RQs, threads, result_type]
+    memory_manager = split_key[0]
+    data_structure = split_key[1]
+    threads = split_key[4]
+    result_type = split_key[5]
+    nice_data['metadata']['data_structures'] = data_structure
+    if result_type == 'allocated':
+      exp_data_location = nice_data['allocations'] 
+    elif result_type == 'throughput':
+      exp_data_location = nice_data['throughput']
+    elif result_type == 'retired':
+      exp_data_location = nice_data['retired']
+    else:
+      raise Exception('Unknown result type')
+    
+    if memory_manager not in exp_data_location:
+      exp_data_location[memory_manager] = {}
+    
+    exp_data_location[memory_manager][threads] = value
+  
+  return nice_data
+
+def get_value(data):
+  ret = {}
+  for (key, value) in data.items():
+    ret[key] = value[0]
+  return ret
+
+def get_error(data):
+  ret = {}
+  for (key, value) in data.items():
+    ret[key] = value[1]
+  return ret
+
+
+def exp_data_to_dataframe(exp_data):
+  df_data = []
+  for (memory_manager, thread_data) in exp_data.items():
+    for (threads, data) in thread_data.items():
+      for value in data:
+        df_data.append({
+          'memory_manager': memory_manager,
+          'threads': threads,
+          'value': value,
+        })
+  df = pd.DataFrame(df_data)
+  print(df)
+  return df
+
+exp_type_to_yaxis = {
+  'throughput': 'Throughput (Mop/s)',
+  'allocations': 'Extra nodes (Thousands)',
+  'retired': '???',
+}
+
+def graph_experiment(exp_type, data, metadata):
+  sns.set_theme(style="whitegrid")
+  sns.set(font_scale=1.2)
+
+  data = exp_data_to_dataframe(data)
+
+  cur_plot = sns.lineplot(data=data, x='threads', y='value', hue='memory_manager', style='memory_manager', markers=True, dashes=False)
+  cur_plot.set_title(f'{exp_type} - {metadata["data_structures"]}')
+  cur_plot.set_xlabel('Number of threads')
+  cur_plot.set_ylabel(exp_type_to_yaxis[exp_type])
+  plt.savefig(f'graphs/{exp_type}.png')
+  plt.clf()
+
 
 def graph_results_from_file(exp_name, filename_tag):
-  results = {}
-  stddev = {}
-  threads = []
-  benchmarks = []
-  memory_managers = []
 
-  readFile(exp_name+filename_tag+'.out', results, stddev, threads, benchmarks, memory_managers)
-  threads.sort()
+  results = readFile(f'{exp_name}{filename_tag}.out')
+  experiment_data = parse_experiment_data(results)
+  with open(f'results/{exp_name}{filename_tag}.json', 'w') as f:
+    f.write(json.dumps(experiment_data, indent=4))
+  
+  for exp_type in ['allocations', 'throughput', 'retired']:
+    graph_experiment(exp_type, experiment_data[exp_type], experiment_data['metadata'])
 
-  print(threads)
-  print(benchmarks)
-  print(memory_managers)
+  # memory_managers = ['NIL', 'HazardOpt', 'RCU', 'DEBRA', 'Hazard', 'Range_new', 'HE', 'Hyaline', 'RC', 'RCHP', 'RSQ', 'RCUShared', 'RCEBR', 'RCIBR', 'RCHyaline']
 
-  memory_managers = ['NIL', 'HazardOpt', 'RCU', 'DEBRA', 'Hazard', 'Range_new', 'HE', 'Hyaline', 'RC', 'RCHP', 'RSQ', 'RCUShared', 'RCEBR', 'RCIBR', 'RCHyaline']
-
-  create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'throughput', 'throughput', False, False)
-  create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'memory', 'retired', False, False)
+  # create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'throughput', 'throughput', False, False)
+  # create_graph(exp_name+filename_tag, results, stddev, convert(exp_name), memory_managers, threads, 'memory', 'retired', False, False)
