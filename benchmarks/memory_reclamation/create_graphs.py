@@ -7,17 +7,11 @@ import json
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+from run_experiments import to_experiment_string
 
 mpl.use('Agg')
 mpl.rcParams['grid.linestyle'] = ':'
 mpl.rcParams.update({'font.size': 18})
-
-import matplotlib.pyplot as plt
-#plt.style.use('ggplot')
-import sys
-import math
-import re
-import copy
 
 
 names = {
@@ -373,29 +367,30 @@ exp_type_to_yaxis = {
   'retired': '???',
 }
 
-def graph_experiment(exp_type, data, metadata):
+def graph_experiment(exp_string, exp_type, data_structure, workload, data, metadata):
   sns.set_theme(style="whitegrid")
   sns.set(font_scale=1.2)
 
   data = exp_data_to_dataframe(data)
 
   cur_plot = sns.lineplot(data=data, x='threads', y='value', hue='memory_manager', style='memory_manager', markers=True, dashes=False)
-  cur_plot.set_title(f'{exp_type} - {metadata["data_structures"]}')
+  cur_plot.set_title(f'{exp_type}, {data_structure}, {workload} - {metadata["data_structures"]}')
   cur_plot.set_xlabel('Number of threads')
   cur_plot.set_ylabel(exp_type_to_yaxis[exp_type])
-  plt.savefig(f'graphs/{exp_type}.png')
+  plt.savefig(f'graphs/{exp_type}-{exp_string}.new.png')
   plt.clf()
 
 
-def graph_results_from_file(exp_name, filename_tag):
+def graph_results_from_file(data_structure, workload):
 
-  results = readFile(f'{exp_name}{filename_tag}.out')
+  experiment_string = to_experiment_string(data_structure, workload)
+  results = readFile(f'{experiment_string}.out')
   experiment_data = parse_experiment_data(results)
-  with open(f'results/{exp_name}{filename_tag}.json', 'w') as f:
+  with open(f'results/{experiment_string}.json', 'w') as f:
     f.write(json.dumps(experiment_data, indent=4))
   
   for exp_type in ['allocations', 'throughput', 'retired']:
-    graph_experiment(exp_type, experiment_data[exp_type], experiment_data['metadata'])
+    graph_experiment(experiment_string, exp_type, data_structure, workload, experiment_data[exp_type], experiment_data['metadata'])
 
   # memory_managers = ['NIL', 'HazardOpt', 'RCU', 'DEBRA', 'Hazard', 'Range_new', 'HE', 'Hyaline', 'RC', 'RCHP', 'RSQ', 'RCUShared', 'RCEBR', 'RCIBR', 'RCHyaline']
 
