@@ -50,7 +50,6 @@
 
 import multiprocessing
 import os
-import sys
 import subprocess
 import argparse
 
@@ -251,4 +250,4 @@ if __name__ == "__main__":
 
     # create graphs
     for (datastructure, workload) in exp_to_run:
-        graph.graph_results_from_file(to_experiment_string(datastructure, workload), '')
+        graph.graph_results_from_file(datastructure, workload)

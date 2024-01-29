@@ -69,25 +69,25 @@ int main(int argc, char *argv[])
 	addRideableOptions<LinkListRCSSFactory>(gtc, "LinkList");
 
 	gtc->addRideableOption(new NatarajanTreeFactory<int,int>(), "NatarajanTree");
-  gtc->addRideableOption(new NatarajanTreeRCFactory<int,int>(), "NatarajanTreeRC");
-  addRideableOptions<NatarajanTreeRCSSFactory>(gtc, "NatarajanTree");
+  	gtc->addRideableOption(new NatarajanTreeRCFactory<int,int>(), "NatarajanTreeRC");
+  	addRideableOptions<NatarajanTreeRCSSFactory>(gtc, "NatarajanTree");
 
 	gtc->addTestOption(new SequentialRemoveTest(4096), "SequentialRemoveTest:prefill=20K");
 	gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,200,100), "ObjRetire:u50:range=200:prefill=100");
-  gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,2000,1000), "ObjRetire:u50:range=2000:prefill=1000");
-  gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,200000,100000), "ObjRetire:u50:range=200K:prefill=100K");
+  	gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,2000,1000), "ObjRetire:u50:range=2000:prefill=1000");
+  	gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,200000,100000), "ObjRetire:u50:range=200K:prefill=100K");
 	gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,2000000,1000000), "ObjRetire:u50:range=2M:prefill=1M");
 	gtc->addTestOption(new ObjRetireTest<int>(50,50,0,0,20000000,10000000), "ObjRetire:u50:range=20M:prefill=10M");
 
 	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,200,100), "ObjRetire:u10:range=200:prefill=100");
-  gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,2000,1000), "ObjRetire:u10:range=2000:prefill=1000");
-  gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,200000,100000), "ObjRetire:u10:range=200K:prefill=100K");
+  	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,2000,1000), "ObjRetire:u10:range=2000:prefill=1000");
+  	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,200000,100000), "ObjRetire:u10:range=200K:prefill=100K");
 	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,2000000,1000000), "ObjRetire:u10:range=2M:prefill=1M");
 	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,20000000,10000000), "ObjRetire:u10:range=20M:prefill=10M");
 
 	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,200,100), "ObjRetire:u1:range=200:prefill=100");
-  gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,2000,1000), "ObjRetire:u1:range=2000:prefill=1000");
-  gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,200000,100000), "ObjRetire:u1:range=200K:prefill=100K");
+  	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,2000,1000), "ObjRetire:u1:range=2000:prefill=1000");
+  	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,200000,100000), "ObjRetire:u1:range=200K:prefill=100K");
 	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,2000000,1000000), "ObjRetire:u1:range=2M:prefill=1M");
 	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,20000000,10000000), "ObjRetire:u1:range=20M:prefill=10M");
 
@@ -99,10 +99,10 @@ int main(int argc, char *argv[])
 	gtc->addTestOption(new ObjRetireTest<int>(90,10,0,0,200000000,100000000), "ObjRetire:u10:range=200M:prefill=100M");
 	gtc->addTestOption(new ObjRetireTest<int>(99,1,0,0,200000000,100000000), "ObjRetire:u1:range=200M:prefill=100M");
 
-  gtc->addTestOption(new SequentialRemoveTest(0), "SequentialRemoveTest:prefill=0");
-  gtc->addTestOption(new SequentialRemoveTest(1), "SequentialRemoveTest:prefill=1");
+  	gtc->addTestOption(new SequentialRemoveTest(0), "SequentialRemoveTest:prefill=0");
+  	gtc->addTestOption(new SequentialRemoveTest(1), "SequentialRemoveTest:prefill=1");
 
-  gtc->addTestOption(new ObjRetireTest<int>(0,50,0,50,200000,100000), "ObjRetire:u50rq50:range=200K:prefill=100K");
+  	gtc->addTestOption(new ObjRetireTest<int>(0,50,0,50,200000,100000), "ObjRetire:u50rq50:range=200K:prefill=100K");
 	gtc->addTestOption(new ObjRetireTest<int>(0,50,0,50,2000000,1000000), "ObjRetire:u50rq50:range=2M:prefill=1M");
 	gtc->addTestOption(new ObjRetireTest<int>(0,50,0,50,20000000,10000000), "ObjRetire:u50rq50:range=20M:prefill=10M");
 	gtc->addTestOption(new ObjRetireTest<int>(0,50,0,50,200000000,100000000), "ObjRetire:u50rq50:range=200M:prefill=100M");
