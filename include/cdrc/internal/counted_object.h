@@ -20,8 +20,7 @@ namespace internal {
 template<typename T>
 struct counted_object {
   alignas(alignof(T)) unsigned char storage[sizeof(T)];
-  utils::StickyCounter<uint32_t> ref_cnt;
-  utils::StickyCounter<uint32_t> weak_cnt;
+  utils::StrongAndWeakCounter<uint32_t> counter;
 
 // In debug mode only, keep track of whether the object has been
 // destroyed yet, to ensure that it is correctly destroyed
@@ -30,7 +29,7 @@ struct counted_object {
 #endif
 
   template<typename... Args>
-  explicit counted_object(Args &&... args) : ref_cnt(1), weak_cnt(1) {
+  explicit counted_object(Args &&... args) : counter(1) {
     new (&storage) T(std::forward<Args>(args)...);
   }
 
@@ -56,10 +55,10 @@ struct counted_object {
 #endif
   }
 
-  auto get_use_count() const { return ref_cnt.load(); }
-  auto get_weak_count() const { return weak_cnt.load(); }
+  auto get_use_count() const { return counter.load_strong(); }
+  auto get_weak_count() const { return counter.load_weak(); }
 
-  bool add_refs(uint64_t count) { return ref_cnt.increment(count, std::memory_order_relaxed); }
+  bool add_refs(uint64_t count) { return counter.increment_strong(count); }
 
   enum class EjectAction {
     nothing,
@@ -77,13 +76,13 @@ struct counted_object {
     // https://www.boost.org/doc/libs/1_57_0/doc/html/atomic/usage_examples.html
     // Alternatively, an acquire-release decrement would work, but might be less efficient since the
     // acquire is only relevant if the decrement zeros the counter.
-    if (ref_cnt.decrement(count, std::memory_order_release)) {
+    if (counter.decrement_strong(count)) {
       std::atomic_thread_fence(std::memory_order_acquire);
       // If there are no live weak pointers, we can immediately destroy
       // everything. Otherwise, we have to defer the disposal of the
       // managed object since an atomic_weak_ptr might be about to
       // take a snapshot...
-      if (weak_cnt.load(std::memory_order_relaxed) == 1) {
+      if (counter.load_weak(std::memory_order_relaxed) == 1) {
         // Immediately destroy the managed object and
         // collect the control data, since no more
         // live (strong or weak) references exist
@@ -99,12 +98,12 @@ struct counted_object {
     return EjectAction::nothing;
   }
 
-  bool add_weak_refs(uint64_t count) { return weak_cnt.increment(count, std::memory_order_relaxed); }
+  bool add_weak_refs(uint64_t count) { return counter.increment_weak(count); }
 
   // Release weak references to the object. If this causes the weak reference count
   // to hit zero, returns true, indicating that the caller should delete this object.
   bool release_weak_refs(uint64_t count) {
-    return weak_cnt.decrement(count, std::memory_order_release);
+    return counter.decrement_weak(count);
   }
 };
 
