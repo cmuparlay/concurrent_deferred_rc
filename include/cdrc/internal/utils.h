@@ -104,54 +104,6 @@ static constexpr inline T zero_flag = (T(1) << (sizeof(T)*8 - 1));
 template<typename T>
 static constexpr inline T zero_pending_flag = (T(1) << (sizeof(T)*8 - 2));
 
-// Loads the current value of the counter. If the current value is zero, it is guaranteed
-// to remain zero until the counter is reset
-template <typename T>
-T loader(std::atomic<T> &x, std::memory_order order = std::memory_order_seq_cst) noexcept {
-  auto val = x.load(order);
-  if (val == 0 && x.compare_exchange_strong(val, zero_flag<T> | zero_pending_flag<T>)) [[unlikely]] return 0;
-  return (val & zero_flag<T>) ? 0 : val;
-}
-
-// Resets the value of the counter to the given value. This may be called when the counter
-// is zero to bring it back to a non-zero value.
-//
-// It is not permitted to race with an increment or decrement.
-template <typename T>
-void reseter(std::atomic<T> &x, T desired, std::memory_order order = std::memory_order_seq_cst) noexcept {
-  x.store(desired == 0 ? zero_flag<T> : desired, order);
-}
-
-
-// Decrement the counter by the given amount. The counter must initially be
-// at least this amount, i.e., it is not permitted to decrement the counter
-// to a negative number.
-//
-// Returns true if the counter was decremented to zero. Returns
-// false if the counter was not decremented to zero
-template <typename T>
-bool decrementer(std::atomic<T> &x, T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
-  if (x.fetch_sub(arg, order) == arg) {
-    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    T expected = 0;
-    if (x.compare_exchange_strong(expected, zero_flag<T>)) [[likely]] return true;
-    else if ((expected & zero_pending_flag<T>) && (x.exchange(zero_flag<T>) & zero_pending_flag<T>)) return true;
-  }
-  return false;
-}
-
-// Increment the counter by the given amount if the counter is not zero.
-//
-// Returns true if the increment was successful, i.e., the counter
-// was not stuck at zero. Returns false if the counter was zero
-template <typename T>
-bool incrementer(std::atomic<T> &x, T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
-  //if (x.load() & zero_flag) return false;
-  auto val = x.fetch_add(arg, order);
-  return (val & zero_flag<T>) == 0;
-}
-
-
 // A wait-free atomic counter that supports increment and decrement,
 // such that attempting to increment the counter from zero fails and
 // does not perform the increment.
@@ -175,29 +127,42 @@ public:
 
   [[nodiscard]] bool is_lock_free() const { return true; }
   static constexpr bool is_always_lock_free = true;
-  [[nodiscard]] constexpr T max_value() const { return zero_pending_flag - 1; }
+  [[nodiscard]] constexpr T max_value() const { return zero_pending_flag<T> - 1; }
 
   StickyCounter() noexcept : x(1) {}
-  explicit StickyCounter(T desired) noexcept : x(desired == 0 ? zero_flag : desired) {}
+  explicit StickyCounter(T desired) noexcept : x(desired == 0 ? zero_flag<T> : desired) {}
 
+  // Increment the counter by the given amount if the counter is not zero.
+  //
+  // Returns true if the increment was successful, i.e., the counter
+  // was not stuck at zero. Returns false if the counter was zero
   bool increment(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
-    return incrementer<T>(x, arg, order);
+    T val = x.fetch_add(arg, order);
+    return (val & zero_flag<T>) == 0;
   }
 
   // Decrement the counter by the given amount. The counter must initially be
   // at least this amount, i.e., it is not permitted to decrement the counter
   // to a negative number.
   //
-  // Returns true if the counter was decremented to zero. Returns
-  // false if the counter was not decremented to zero
+  // Returns true if the counter was decremented to zero. 
+  // Returns false if the counter was not decremented to zero
   bool decrement(T arg, std::memory_order order = std::memory_order_seq_cst) noexcept {
-    return decrementer<T>(x, arg, order);
+    if (x.fetch_sub(arg, order) == arg) {
+      // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      T expected = 0;
+      if (x.compare_exchange_strong(expected, zero_flag<T>)) [[likely]] return true;
+      else if ((expected & zero_pending_flag<T>) && (x.exchange(zero_flag<T>) & zero_pending_flag<T>)) return true;
+    }
+    return false;
   }
 
   // Loads the current value of the counter. If the current value is zero, it is guaranteed
   // to remain zero until the counter is reset
   T load(std::memory_order order = std::memory_order_seq_cst) const noexcept {
-    return loader<T>(x, order);
+    auto val = x.load(order);
+    if (val == 0 && x.compare_exchange_strong(val, zero_flag<T> | zero_pending_flag<T>)) [[unlikely]] return 0;
+    return (val & zero_flag<T>) ? 0 : val;
   }
 
   // Resets the value of the counter to the given value. This may be called when the counter
@@ -205,13 +170,10 @@ public:
   //
   // It is not permitted to race with an increment or decrement.
   void reset(T desired, std::memory_order order = std::memory_order_seq_cst) noexcept {
-    return reseter<T>(x, desired, order);
+    x.store(desired == 0 ? zero_flag<T> : desired, order);
   }
 
 private:
-  static constexpr inline T zero_flag = (T(1) << (sizeof(T)*8 - 1));
-  static constexpr inline T zero_pending_flag = (T(1) << (sizeof(T)*8 - 2));
-
   mutable std::atomic<T> x;
 };
 
@@ -227,10 +189,26 @@ public:
   T load_strong(std::memory_order order = std::memory_order_seq_cst) const { return ref_cnt.load(order); }
   T load_weak(std::memory_order order = std::memory_order_seq_cst) const { return weak_cnt.load(order); }
 
-  bool increment_strong(uint64_t count) { return ref_cnt.increment(count, std::memory_order_relaxed); }
+  bool increment_strong(uint64_t count) {
+    // any thread that moves the strong reference count from 0->1 to have to increment the weak reference count
+    // QUESTION: is this actually for 0->count
+    bool incremented_from_zero = !ref_cnt.increment(count, std::memory_order_relaxed);
+    // if (incremented_from_zero) {
+    //   increment_weak(count);
+    // } 
+    return !incremented_from_zero;
+  }
   bool increment_weak(uint64_t count) { return weak_cnt.increment(count, std::memory_order_relaxed); }
 
-  bool decrement_strong(uint64_t count) { return ref_cnt.decrement(count, std::memory_order_release); }
+  bool decrement_strong(uint64_t count) { 
+    // any thread that moves the strong reference count from 1->0 to have to decrement the weak reference count 
+    // QUESTION: is this actually for count->0
+    bool decremented_to_zero = ref_cnt.decrement(count, std::memory_order_release);
+    // if (decremented_to_zero) {
+    //   decrement_weak(count);
+    // }
+    return decremented_to_zero;
+  }
   bool decrement_weak(uint64_t count) { return weak_cnt.decrement(count, std::memory_order_release); }
 
 private:
