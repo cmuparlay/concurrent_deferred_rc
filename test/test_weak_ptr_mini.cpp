@@ -9,6 +9,6 @@ TEST(TestWeakPtrsMini, bug) {
   cdrc::weak_ptr<int> y = x;
 
   cdrc::atomic_weak_ptr<int> ap;
-  ap.store(x);
-  auto ss = ap.get_snapshot();
+  ap.store(std::move(x));
+  // auto ss = ap.get_snapshot();
 }

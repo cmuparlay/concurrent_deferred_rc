@@ -21,11 +21,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # Make sure -fno-omit-frame-pointer is set for profiling
-if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
-else()
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oy-")
-endif()
+# if(NOT MSVC)
+#   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+# else()
+#   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oy-")
+# endif()
 
 message(STATUS "CDRC VERSION ${CDRC_VERSION}")
 message(STATUS "---------------------------- General configuration -----------------------------")
@@ -100,7 +100,7 @@ if(LINUX)
 endif()
 
 # User option to build unit tests
-option(CDRC_TEST  "Build unit tests"       OFF)
+option(CDRC_TEST  "Build unit tests"       ON)
 
 if (CDRC_TEST)
   # Set CMake options for GoogleTest
