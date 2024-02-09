@@ -22,6 +22,7 @@ add_dtests(NAME test_bug FILES test_bug.cpp LIBS cdrc)
 
 add_dtests(NAME test_sticky_counter FILES test_sticky_counter.cpp LIBS cdrc)
 add_dtests(NAME test_weak_ptr_mini FILES test_weak_ptr_mini.cpp LIBS cdrc)
+add_dtests(NAME test_weak_ptr_leak FILES test_weak_ptr_leak.cpp LIBS cdrc)
 
 # Temporaily Disabled Folly Tests
 

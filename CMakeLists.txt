@@ -27,6 +27,8 @@ endif(NOT CMAKE_BUILD_TYPE)
 #   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oy-")
 # endif()
 
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
+
 message(STATUS "CDRC VERSION ${CDRC_VERSION}")
 message(STATUS "---------------------------- General configuration -----------------------------")
 message(STATUS "CMake Generator:                ${CMAKE_GENERATOR}")
