@@ -35,7 +35,7 @@ TEST(TestWeakPtrLeak, Leak) {
       ASSERT_EQ(locked.use_count(), 0);
       ASSERT_EQ(locked.weak_count(), 0);
       ASSERT_EQ(y.use_count(), 0);
-      // ASSERT_EQ(y.weak_count(), 2);
+      ASSERT_EQ(y.weak_count(), 2);
 
       {
         cdrc::atomic_weak_ptr<int> ap;
@@ -53,14 +53,41 @@ TEST(TestWeakPtrLeak, Leak) {
             ASSERT_EQ(locked2.weak_count(), 2);
             ASSERT_EQ(z.use_count(), 2);
             ASSERT_EQ(z.weak_count(), 3);
-          } // locked2 goes out of scope
+          }  // locked2 goes out of scope
+          ASSERT_EQ(x.use_count(), 1);
+          ASSERT_EQ(x.weak_count(), 2);
+          ASSERT_EQ(y.use_count(), 0);
+          ASSERT_EQ(y.weak_count(), 2);
+          ASSERT_EQ(locked.use_count(), 0);
+          ASSERT_EQ(locked.weak_count(), 0);
+          // ap is atomic, so it doesn't have a use count
+          ASSERT_EQ(z.use_count(), 1);
+          ASSERT_EQ(z.weak_count(), 3);
 
-        } // z goes out of scope
+        }  // z goes out of scope
+        ASSERT_EQ(x.use_count(), 1);
+        ASSERT_EQ(x.weak_count(), 1);
+        ASSERT_EQ(y.use_count(), 0);
+        ASSERT_EQ(y.weak_count(), 2);
+        ASSERT_EQ(locked.use_count(), 0);
+        ASSERT_EQ(locked.weak_count(), 0);
+        // ap is atomic, so it doesn't have a use count
 
-      } // ap goes out of scope
+      }  // ap goes out of scope
+      ASSERT_EQ(x.use_count(), 1);
+      ASSERT_EQ(x.weak_count(), 1);
+      ASSERT_EQ(y.use_count(), 0);
+      ASSERT_EQ(y.weak_count(), 2);
+      ASSERT_EQ(locked.use_count(), 0);
+      ASSERT_EQ(locked.weak_count(), 0);
 
-    } // locked goes out of scope
+    }  // locked goes out of scope
+    ASSERT_EQ(x.use_count(), 1);
+    ASSERT_EQ(x.weak_count(), 1);
+    ASSERT_EQ(y.use_count(), 0);
+    ASSERT_EQ(y.weak_count(), 2);
 
-  } // y goes out of scope
-
+  }  // y goes out of scope
+  ASSERT_EQ(x.use_count(), 1);
+  ASSERT_EQ(x.weak_count(), 1);
 }
