@@ -47,6 +47,7 @@ TEST(TestWeakPtrLeak, Leak) {
   cdrc::rc_ptr<int> locked2 = z.lock();
   ASSERT_EQ(locked2.use_count(), 2);
   ASSERT_EQ(locked2.weak_count(), 2);
+  ASSERT_EQ(z.use_count(), 2);
+  ASSERT_EQ(z.weak_count(), 3);
 
-  // auto ss = ap.get_snapshot();
 }
