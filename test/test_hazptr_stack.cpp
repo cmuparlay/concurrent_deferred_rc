@@ -1,20 +1,21 @@
+#include "gtest/gtest.h"
 // Concurrent stack using Folly's hazard pointers
 
 #include <atomic>
 #include <iostream>
 #include <optional>
 
-#include <folly/synchronization/Rcu.h>
+#include <folly/synchronization/Hazptr.h>
 
 using std::atomic;
 using std::optional;
 using std::nullopt;
-using folly::rcu_reader;
-using folly::rcu_obj_base;
+using folly::hazptr_obj_base;
+using folly::hazptr_holder;
 
 template<typename T>
 struct stack {
-  struct Node : public rcu_obj_base<Node> {
+  struct Node : public hazptr_obj_base<Node> {
     T t; Node* next;  };
 
   atomic<Node*> head;
@@ -25,9 +26,12 @@ struct stack {
   }
 
   optional<T> pop_front() {
-    rcu_reader guard;
-    auto p = head.load();
-    while (p && !head.compare_exchange_weak(p, p->next)) { }
+    Node* p;
+    hazptr_holder h;
+    do {
+      p = h.get_protected(head);
+      if (p == nullptr) return {};
+    } while (!head.compare_exchange_weak(p, p->next));
     auto val = p ? optional{p->t} : nullopt;
     if (p) p->retire();
     return val;
@@ -36,18 +40,18 @@ struct stack {
 
 const int M = 10000;
 
-void test_seq() {
+TEST(TestHazptrStack, TestSeq) {
   stack<int> s;
-  assert(!s.pop_front());
+  ASSERT_TRUE(!s.pop_front());
   s.push_front(5);
-  assert(s.pop_front().value() == 5);
-  assert(!s.pop_front());
+  ASSERT_EQ(s.pop_front().value(), 5);
+  ASSERT_TRUE(!s.pop_front());
   s.push_front(5);
   s.push_front(6);
   s.push_front(7);
-  assert(s.pop_front().value() == 7);
-  assert(s.pop_front().value() == 6);
-  assert(s.pop_front().value() == 5);
+  ASSERT_EQ(s.pop_front().value(), 7);
+  ASSERT_EQ(s.pop_front().value(), 6);
+  ASSERT_EQ(s.pop_front().value(), 5);
 }
 
 void test_par() {
@@ -96,20 +100,13 @@ void test_par() {
   popper1.join();
   popper2.join();
 
-  assert(checksum1 + checksum2 == actualsum1 + actualsum2);
+  ASSERT_EQ(checksum1 + checksum2, actualsum1 + actualsum2);
 }
 
-void run_all_tests() {
-  test_seq();
-  test_par();
-}
-
-int main() {
+TEST(TestHazptrStack, TestBasic) {
   stack<int> s;
   s.push_front(5);
   auto val = s.pop_front();
-  assert(val.has_value());
-  assert(val.value() == 5);
-
-  run_all_tests();
+  ASSERT_TRUE(val.has_value());
+  ASSERT_EQ(val.value(), 5);
 }

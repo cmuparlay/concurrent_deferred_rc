@@ -1,5 +1,5 @@
+#include "gtest/gtest.h"
 
-#include <cassert>
 #include <cstdio>
 
 #include <atomic>
@@ -16,28 +16,28 @@ static const size_t N = cdrc::utils::num_threads() - 1;   // Number of threads
 static const int M = 10000;                      // Number of operations per thread
 
 
-void test_seq() {
+TEST(TestBenchmarkQueue, TestSeq) {
   puts("SEQUENTIAL TEST...");
   cdrc::weak_ptr_queue::atomic_queue<int> q;
-  assert(!q.dequeue().has_value());   // Initially empty
+  ASSERT_TRUE(!q.dequeue().has_value());   // Initially empty
   for (int i = 0; i < 1000; i++) {
     q.enqueue(i);
   }
   for (int i = 0; i < 1000; i++) {
     auto x = q.dequeue();
-    assert(x.has_value());
-    assert(x.value() == i);
+    ASSERT_TRUE(x.has_value());
+    ASSERT_TRUE(x.value() == i);
   }
-  assert(!q.dequeue().has_value());
+  ASSERT_TRUE(!q.dequeue().has_value());
   for (int i = 0; i < 1000; i++) {
     q.enqueue(i);
   }
   for (int i = 0; i < 1000; i++) {
     auto x = q.dequeue();
-    assert(x.has_value());
-    assert(x.value() == i);
+    ASSERT_TRUE(x.has_value());
+    ASSERT_TRUE(x.value() == i);
   }
-  assert(!q.dequeue().has_value());
+  ASSERT_TRUE(!q.dequeue().has_value());
   puts("\tOK");
 }
 
@@ -57,7 +57,7 @@ void test_destructor() {
 
 
 // Seperate threads are assigned to just enqueue (produce) or just dequeue (consume)
-void test_par() {
+TEST(TestBenchmarkQueue, TestPar) {
   puts("PARALLEL PRODUCER AND CONSUMER TEST...");
 
   cdrc::weak_ptr_queue::atomic_queue<int> q;
@@ -103,12 +103,12 @@ void test_par() {
     checksum += consumer_sums[i];
   }
 
-  assert(checksum == actualsum);
+  ASSERT_EQ(checksum, actualsum);
   puts("\tOK");
 }
 
 // Each thread both dequeues and enqueues
-void test_par2() {
+TEST(TestBenchmarkQueue, TestPar2) {
   puts("PARALLEL DEQUEUE+ENQUEUE TEST");
 
   // The queue contains one element per thread
@@ -137,16 +137,4 @@ void test_par2() {
 
   for (auto& t : threads) t.join();
   puts("\tOK");
-}
-
-void run_all_tests() {
-  test_seq();
-  test_destructor();
-  test_par();
-  test_par2();
-}
-
-int main () {
-  std::cout << "Running tests using up to " << cdrc::utils::num_threads() << " threads." << std::endl;
-  run_all_tests();
 }

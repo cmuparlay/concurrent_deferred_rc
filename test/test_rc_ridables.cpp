@@ -1,5 +1,5 @@
+#include "gtest/gtest.h"
 
-#include <cassert>
 #include <cstddef>
 
 #include <algorithm>
@@ -26,30 +26,30 @@ template<class SetFactory>
 void test_simple() {
   auto* setFactory = new SetFactory();
   auto* set = setFactory->build(nullptr);
-  assert(!set->get(2, 0));
-  assert(set->size() == 0);
-  assert(!set->remove(0, 0));
-  assert(set->size() == 0);
-  assert(set->insert(2, 2, 0));
+  ASSERT_TRUE(!set->get(2, 0));
+  ASSERT_EQ(set->size(), 0);
+  ASSERT_TRUE(!set->remove(0, 0));
+  ASSERT_EQ(set->size(), 0);
+  ASSERT_TRUE(set->insert(2, 2, 0));
   // std::cout << set->size() << std::endl;
-  assert(set->size() == 1);
-  assert(set->insert(3, 3, 0));
+  ASSERT_EQ(set->size(), 1);
+  ASSERT_TRUE(set->insert(3, 3, 0));
   // std::cout << set->size() << std::endl;
-  assert(set->size() == 2);
-  assert(set->insert(1, 1, 0));
-  assert(set->size() == 3);
-  assert(set->keySum() == 6);
-  assert(set->get(2, 0));
-  assert(set->get(3, 0));
-  assert(set->get(1, 0));
-  assert(!set->get(4, 0));
-  assert(set->remove(2, 0));
-  assert(set->size() == 2);
-  assert(!set->get(2, 0));
-  assert(set->get(3, 0));
-  assert(set->get(1, 0));
-  assert(!set->get(4, 0));
-  assert(set->size() == 2);
+  ASSERT_EQ(set->size(), 2);
+  ASSERT_TRUE(set->insert(1, 1, 0));
+  ASSERT_EQ(set->size(), 3);
+  ASSERT_EQ(set->keySum(), 6);
+  ASSERT_TRUE(set->get(2, 0));
+  ASSERT_TRUE(set->get(3, 0));
+  ASSERT_TRUE(set->get(1, 0));
+  ASSERT_TRUE(!set->get(4, 0));
+  ASSERT_TRUE(set->remove(2, 0));
+  ASSERT_EQ(set->size(), 2);
+  ASSERT_EQ(!set->get(2, 0));
+  ASSERT_TRUE(set->get(3, 0));
+  ASSERT_TRUE(set->get(1, 0));
+  ASSERT_TRUE(!set->get(4, 0));
+  ASSERT_EQ(set->size(), 2);
   delete set;
   delete setFactory;
 }
@@ -70,10 +70,10 @@ void stress_test(int num_iter) {
   for(size_t p = 0; p < NUM_THREADS; p++) {
     threads.emplace_back([p, &set, &keys, &barrier, &num_iter] () {
       for(int i = p; i < num_iter; i+=NUM_THREADS)
-        assert(set->insert(keys[i], i, p));
+        ASSERT_EQ(set->insert(keys[i], i, p));
       barrier.wait();
       for(int i = p; i < num_iter; i+=NUM_THREADS)
-        assert(set->remove(i, p));      
+        ASSERT_EQ(set->remove(i, p));      
     });        
   }
   for (auto& t : threads) t.join(); 
@@ -91,7 +91,7 @@ void test_concurrent_delete() {
   long long expected_sum = 0;
   atomic<long long> actual_sum = 0;
   for(int i = 0; i < num_iter; i++) {
-    assert(set->insert(i, i, 0));
+    ASSERT_EQ(set->insert(i, i, 0));
     expected_sum += i;
   }
 
@@ -113,7 +113,7 @@ void test_concurrent_delete() {
   }
   for (auto& t : threads) t.join(); 
 
-  assert(actual_sum == expected_sum);
+  ASSERT_EQ(actual_sum, expected_sum);
   delete set;
   delete setFactory;
 }
@@ -152,4 +152,8 @@ int main() {
   run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, ebr, cdrc::epoch_guard>>(100000);
   run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, ibr, cdrc::epoch_guard>>(100000);
   run_all_tests<SortedUnorderedMapRCSSTestFactory<int, int, hyaline, cdrc::hyaline_guard>>(100000);
+}
+
+TEST(TestRcRidables, Port) {
+  ASSERT_TRUE(false);
 }

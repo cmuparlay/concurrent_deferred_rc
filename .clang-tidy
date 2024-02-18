@@ -1,0 +1,24 @@
+# Settings for clang-tidy
+#
+# Supports the following options:
+#
+#   Checks:          '-*,some-check'
+#   WarningsAsErrors: ''
+#   HeaderFilterRegex: ''
+#   FormatStyle:     none
+#   User:            user
+#   CheckOptions:
+#     - key:             some-check.SomeOption
+#       value:           'some value'
+
+Checks:            'bugprone-*,
+                      -bugprone-easily-swappable-parameters,
+                    clang-analyzer-*,
+                    performance-*,
+                    portability-*'
+WarningsAsErrors:  'bugprone-*,
+                      -bugprone-easily-swappable-parameters,
+                    clang-analyzer-*,
+                    performance-*,
+                    portability-*'
+FormatStyle:       none
